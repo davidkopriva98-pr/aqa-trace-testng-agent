@@ -1,8 +1,11 @@
 package com.aqanetics.agent.testng.listener;
 
 import static com.aqanetics.AqaConfigLoader.AGENT_API_ENDPOINT;
+import static com.aqanetics.AqaConfigLoader.API_ENDPOINT;
+import static com.aqanetics.AqaConfigLoader.ARTIFACTS_ENDPOINT;
 import static com.aqanetics.AqaConfigLoader.SUITE_API_ENDPOINT;
 import static com.aqanetics.AqaConfigLoader.getProperty;
+import static com.aqanetics.utils.CrudMethods.postExecutionArtifact;
 
 import com.aqanetics.AqaConfigLoader;
 import com.aqanetics.agent.testng.ExecutionEntities;
@@ -12,15 +15,20 @@ import com.aqanetics.agent.testng.dto.ParameterDto;
 import com.aqanetics.utils.CrudMethods;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
+import java.io.File;
+import java.io.IOException;
 import java.net.InetAddress;
 import java.net.URI;
 import java.net.UnknownHostException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testng.IInvokedMethod;
@@ -29,6 +37,7 @@ import org.testng.ISuite;
 import org.testng.ISuiteListener;
 import org.testng.ITestContext;
 import org.testng.ITestResult;
+import org.testng.xml.XmlSuite;
 
 public class SuiteExecutionListener implements ISuiteListener, IInvokedMethodListener {
 
@@ -38,6 +47,8 @@ public class SuiteExecutionListener implements ISuiteListener, IInvokedMethodLis
   private static final boolean FAIL_SUITE_ON_CONF_FAIL = Objects.equals(
       AqaConfigLoader.getProperty("aqa-trace.fail-suite-on-configuration-failures", "false"),
       "true");
+  private static final boolean ENABLED_ARTIFACTS = Objects.equals(
+      AqaConfigLoader.getProperty("aqa-trace.artifacts.enabled", "false"), "true");
 
   public SuiteExecutionListener() {
   }
@@ -88,7 +99,7 @@ public class SuiteExecutionListener implements ISuiteListener, IInvokedMethodLis
     try {
       String response = CrudMethods.sendPost(
           URI.create(
-              AqaConfigLoader.API_ENDPOINT + AGENT_API_ENDPOINT + SUITE_API_ENDPOINT + "new"),
+              API_ENDPOINT + AGENT_API_ENDPOINT + SUITE_API_ENDPOINT + "new"),
           AqaConfigLoader.OBJECT_MAPPER.writeValueAsString(newSuiteExecution));
       if (response != null) {
         JsonNode rootNode = AqaConfigLoader.OBJECT_MAPPER.readTree(response);
@@ -123,6 +134,7 @@ public class SuiteExecutionListener implements ISuiteListener, IInvokedMethodLis
 
   public void onFinish(ISuite suite) {
     if (ExecutionEntities.suiteExecutionId != null) {
+      uploadXmlSuiteFile(suite.getXmlSuite());
       LOGGER.info("SuiteExecution with id: {} is finished.", ExecutionEntities.suiteExecutionId);
       Map<String, Object> jsonPayload = new HashMap<>();
       jsonPayload.put("endTime", Instant.now().toString());
@@ -137,7 +149,30 @@ public class SuiteExecutionListener implements ISuiteListener, IInvokedMethodLis
       jsonPayload.put("status", allPassed ? "PASSED" : "FAILED");
       this.updateSuiteExecution(jsonPayload);
     }
+  }
 
+  private void uploadXmlSuiteFile(XmlSuite xmlSuite) {
+    LOGGER.info("Uploading XML suite file {} - {}", xmlSuite.getName(), ENABLED_ARTIFACTS);
+    if (ENABLED_ARTIFACTS) {
+      String url = API_ENDPOINT + AGENT_API_ENDPOINT + SUITE_API_ENDPOINT
+                   + ExecutionEntities.suiteExecutionId + ARTIFACTS_ENDPOINT;
+      LOGGER.info("Uploading suite execution {} to suite execution {}", xmlSuite.getName(),
+          ExecutionEntities.suiteExecutionId);
+
+      File suiteFile = null;
+      try {
+        suiteFile = File.createTempFile(UUID.randomUUID().toString(), ".xml");
+        Path path = suiteFile.toPath();
+        Files.write(path, xmlSuite.toXml().getBytes());
+
+        postExecutionArtifact(url, suiteFile, "suite.xml", false);
+      } catch (IOException e) {
+        LOGGER.error("Error uploading suite execution", e);
+      } finally {
+        assert suiteFile != null;
+        suiteFile.delete();
+      }
+    }
   }
 
   public void afterInvocation(IInvokedMethod method, ITestResult testResult, ITestContext context) {
