@@ -136,13 +136,14 @@ public class TestExecutionListener implements ITestListener, IInvokedMethodListe
     if (tm != null) {
       AQATraceIgnore ignore = tr.getMethod().getConstructorOrMethod().getMethod()
           .getAnnotation(AQATraceIgnore.class);
-      LOGGER.warn(String.valueOf(ignore));
       if ((ignore == null || !ignore.value())) {
+
+        String sessionId = tr.getTestContext().getAttribute("sessionId").toString();
+
         NewTestExecutionDto newTestExecution = new NewTestExecutionDto(
-            tr.getMethod().getMethodName(),
-            tm.getTestClass().getRealClass().getSimpleName(),
+            tr.getMethod().getMethodName(), tm.getTestClass().getRealClass().getSimpleName(),
             tr.getMethod().isBeforeMethodConfiguration() ? "BeforeMethod" : "AfterMethod",
-            tr.getTestClass().getName(), Instant.now(), true, Instant.now());
+            tr.getTestClass().getName(), Instant.now(), true, Instant.now(), sessionId);
         LOGGER.debug("Config method starting: {}", newTestExecution);
         if (ExecutionEntities.testExecution == null || !Objects.equals(
             ExecutionEntities.testExecution.testName(), tm.getMethodName())) {
@@ -150,7 +151,7 @@ public class TestExecutionListener implements ITestListener, IInvokedMethodListe
           ExecutionEntities.testExecution = this.registerNewTestExecution(
               new NewTestExecutionDto(tm.getMethodName(),
                   tm.getTestClass().getRealClass().getSimpleName(), "Test", "SKIPPED",
-                  tr.getTestClass().getName(), Instant.now(), false));
+                  tr.getTestClass().getName(), Instant.now(), false, sessionId));
           LOGGER.info("Test execution {} was missing for current configuration method",
               ExecutionEntities.testExecution.id());
         }
@@ -238,7 +239,9 @@ public class TestExecutionListener implements ITestListener, IInvokedMethodListe
           && ExecutionEntities.testExecution.startTime() == null) {
         ExecutionEntities.inProgressTestExecutionId = ExecutionEntities.testExecution.id();
 
-        Map<String, Object> values = new HashMap<>(Map.of("startTime", Instant.now().toString()));
+        Map<String, Object> values = new HashMap<>(
+            Map.ofEntries(Map.entry("startTime", Instant.now().toString()),
+                Map.entry("sessionId", context.getAttribute("sessionId"))));
         if (retryCount > 0) {
           values.put("retryCount", retryCount);
         }
@@ -261,8 +264,9 @@ public class TestExecutionListener implements ITestListener, IInvokedMethodListe
             new NewTestExecutionDto(method.getTestMethod().getMethodName(),
                 method.getTestMethod().getTestClass().getRealClass().getSimpleName(), "Test",
                 method.getTestMethod().getTestClass().getName(),
-                Instant.ofEpochMilli(method.getDate()), true,
-                Instant.now(), method.getTestMethod().getCurrentInvocationCount(), retryOf));
+                Instant.ofEpochMilli(method.getDate()), true, Instant.now(),
+                method.getTestMethod().getCurrentInvocationCount(), retryOf,
+                context.getAttribute("sessionId").toString()));
         ExecutionEntities.inProgressTestExecutionId = ExecutionEntities.testExecution.id();
         LOGGER.info("@Test {} had no configurations. Created new test execution",
             ExecutionEntities.testExecution.id());
