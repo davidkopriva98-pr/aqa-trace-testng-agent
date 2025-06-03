@@ -55,6 +55,61 @@
         <groupId>org.apache.maven.plugins</groupId>
         <version>3.6.0</version>
       </plugin>
+      <plugin>
+        <artifactId>maven-source-plugin</artifactId>
+        <executions>
+          <execution>
+            <goals>
+              <goal>jar-no-fork</goal>
+            </goals>
+            <id>attach-sources</id>
+          </execution>
+        </executions>
+        <groupId>org.apache.maven.plugins</groupId>
+        <version>2.2.1</version>
+      </plugin>
+      <plugin>
+        <artifactId>maven-javadoc-plugin</artifactId>
+        <executions>
+          <execution>
+            <goals>
+              <goal>jar</goal>
+            </goals>
+            <id>attach-javadocs</id>
+          </execution>
+        </executions>
+        <groupId>org.apache.maven.plugins</groupId>
+        <version>2.9.1</version>
+      </plugin>
+      <plugin>
+        <artifactId>maven-gpg-plugin</artifactId>
+        <configuration>
+          <gpgExecutable>gpg</gpgExecutable>
+          <keyname>439B70FC91D58F72661B04E5A1A76B646368C6C8</keyname>
+        </configuration>
+        <executions>
+          <execution>
+            <goals>
+              <goal>sign</goal>
+            </goals>
+            <id>sign-artifacts</id>
+            <phase>verify</phase>
+          </execution>
+        </executions>
+        <groupId>org.apache.maven.plugins</groupId>
+        <version>1.5</version>
+      </plugin>
+      <plugin>
+        <artifactId>central-publishing-maven-plugin</artifactId>
+        <configuration>
+          <autoPublish>true</autoPublish>
+          <publishingServerId>central</publishingServerId>
+          <waitUntil>published</waitUntil>
+        </configuration>
+        <extensions>true</extensions>
+        <groupId>org.sonatype.central</groupId>
+        <version>0.6.0</version>
+      </plugin>
     </plugins>
     <resources>
       <resource>
@@ -149,6 +204,6 @@
 
   <url>https://github.com/davidkopriva98-pr/aqa-trace-testng-agent</url>
 
-  <version>1.0.0-SNAPSHOT</version>
+  <version>1.0.0</version>
 
 </project>
