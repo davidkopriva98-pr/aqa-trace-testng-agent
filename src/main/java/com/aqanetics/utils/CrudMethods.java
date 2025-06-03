@@ -7,6 +7,9 @@ import static com.aqanetics.AqaConfigLoader.TEST_API_ENDPOINT;
 
 import com.aqanetics.AqaConfigLoader;
 import com.aqanetics.agent.testng.ExecutionEntities;
+import com.aqanetics.exception.ArtifactException;
+import java.io.File;
+import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -14,6 +17,13 @@ import java.net.http.HttpRequest.BodyPublishers;
 import java.net.http.HttpResponse;
 import java.net.http.HttpResponse.BodyHandlers;
 import java.util.Map;
+import org.apache.hc.client5.http.entity.mime.MultipartEntityBuilder;
+import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
+import org.apache.hc.client5.http.impl.classic.HttpClients;
+import org.apache.hc.core5.http.ClassicHttpRequest;
+import org.apache.hc.core5.http.ContentType;
+import org.apache.hc.core5.http.HttpEntity;
+import org.apache.hc.core5.http.io.support.ClassicRequestBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -74,6 +84,28 @@ public class CrudMethods {
       client.send(request, BodyHandlers.ofString());
     } catch (Exception e) {
       throw new RuntimeException(e);
+    }
+  }
+
+  public static void postExecutionArtifact(String url, File artifact, String fileName,
+      boolean ofTestExecution) {
+    if (AqaConfigLoader.API_ENDPOINT != null && (
+        (ofTestExecution && ExecutionEntities.testExecution != null) || (!ofTestExecution &&
+                                                                         ExecutionEntities.suiteExecutionId
+                                                                         != null))) {
+      try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
+        HttpEntity multipartEntity = MultipartEntityBuilder.create()
+            .addBinaryBody("file", artifact, ContentType.DEFAULT_BINARY, fileName)
+            .build();
+        ClassicHttpRequest httpPost = ClassicRequestBuilder.post(url).setEntity(multipartEntity)
+            .build();
+        Integer responseCode = httpClient.execute(httpPost,
+            org.apache.hc.core5.http.HttpResponse::getCode);
+        LOGGER.info("Response Code: {}", responseCode);
+      } catch (IOException e) {
+        LOGGER.info("Failed to upload artifact: {}", e.getMessage());
+        throw new ArtifactException(e.getMessage());
+      }
     }
   }
 }
