@@ -14,6 +14,7 @@ public class AqaConfigLoader {
   public static final String SUITE_API_ENDPOINT = "/suite-executions/";
   public static final String TEST_API_ENDPOINT = "/test-executions/";
   public static final String LOG_API_ENDPOINT = "/logs";
+  public static final String ARTIFACTS_ENDPOINT = "/artifacts";
   public static final ObjectMapper OBJECT_MAPPER = (new ObjectMapper()).registerModule(
       new JavaTimeModule());
   private static final Logger LOGGER = LoggerFactory.getLogger(AqaConfigLoader.class);
