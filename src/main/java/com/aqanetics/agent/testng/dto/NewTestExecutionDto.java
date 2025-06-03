@@ -11,27 +11,28 @@ public record NewTestExecutionDto(String testName,
                                   Boolean inProgress,
                                   Instant startTime,
                                   Integer retryCount,
-                                  Long retryOf) {
+                                  Long retryOf,
+                                  String sessionId) {
 
   public NewTestExecutionDto(String testName, String testClassName, String type, String status,
-      String testClasspath, Instant createdTime, Boolean inProgress) {
+      String testClasspath, Instant createdTime, Boolean inProgress, String sessionId) {
     this(testName, testClassName, type, status, testClasspath, createdTime, inProgress, null,
-        null, null);
+        null, null, sessionId);
   }
 
   public NewTestExecutionDto(String testName, String testClassName, String type,
-      String testClasspath,
-      Instant createdTime, Boolean inProgress, Instant startTime) {
+      String testClasspath, Instant createdTime, Boolean inProgress, Instant startTime,
+      String sessionId) {
     this(testName, testClassName, type, null, testClasspath, createdTime, inProgress,
-        startTime, null, null);
+        startTime, null, null, sessionId);
   }
 
   public NewTestExecutionDto(String testName, String testClassName, String type,
       String testClasspath,
       Instant createdTime, Boolean inProgress, Instant startTime, Integer retryCount,
-      Long retryOf) {
+      Long retryOf, String sessionId) {
     this(testName, testClassName, type, null, testClasspath, createdTime, inProgress,
-        startTime, retryCount, retryOf);
+        startTime, retryCount, retryOf, sessionId);
   }
 
   @Override

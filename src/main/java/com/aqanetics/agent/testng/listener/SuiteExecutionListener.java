@@ -31,12 +31,9 @@ import java.util.Objects;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.testng.IInvokedMethod;
 import org.testng.IInvokedMethodListener;
 import org.testng.ISuite;
 import org.testng.ISuiteListener;
-import org.testng.ITestContext;
-import org.testng.ITestResult;
 import org.testng.xml.XmlSuite;
 
 public class SuiteExecutionListener implements ISuiteListener, IInvokedMethodListener {
@@ -53,6 +50,7 @@ public class SuiteExecutionListener implements ISuiteListener, IInvokedMethodLis
   public SuiteExecutionListener() {
   }
 
+  @Override
   public void onStart(ISuite suite) {
     String hostName = null;
     try {
@@ -120,9 +118,6 @@ public class SuiteExecutionListener implements ISuiteListener, IInvokedMethodLis
       if (response != null) {
         JsonNode rootNode = AqaConfigLoader.OBJECT_MAPPER.readTree(response);
         ExecutionEntities.suiteExecutionId = rootNode.get("id").asLong();
-        if (rootNode.has("sessionId")) {
-          ExecutionEntities.suiteExecutionSessionId = rootNode.get("sessionId").asText();
-        }
         LOGGER.debug("Received updated suiteExecution with id: {}",
             ExecutionEntities.suiteExecutionId);
       }
@@ -172,14 +167,6 @@ public class SuiteExecutionListener implements ISuiteListener, IInvokedMethodLis
         assert suiteFile != null;
         suiteFile.delete();
       }
-    }
-  }
-
-  public void afterInvocation(IInvokedMethod method, ITestResult testResult, ITestContext context) {
-    IInvokedMethodListener.super.afterInvocation(method, testResult, context);
-    if (ExecutionEntities.suiteExecutionSessionId == null
-        && context.getSuite().getAttribute("sessionId") != null) {
-      this.updateSuiteExecution(Map.of("sessionId", context.getSuite().getAttribute("sessionId")));
     }
   }
 }
