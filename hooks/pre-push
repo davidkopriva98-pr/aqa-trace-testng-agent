@@ -1,0 +1,22 @@
+#!/bin/bash
+
+# This script runs the fmt:format goal before committing.
+# It uses Maven to format the code.
+
+echo "Running fmt:check..."
+
+# Adjust 'mvnw' if you use the Maven wrapper, otherwise use 'mvn'
+if [ -f "mvnw" ]; then
+  ./mvnw fmt:check
+else
+  mvn fmt:check
+fi
+
+# Check the exit status of the fmt:format command
+if [ $? -ne 0 ]; then
+  echo "Code formatting is not applied. Please fix the formatting issues before committing."
+  exit 1
+fi
+
+echo "Code is formatted."
+exit 0
