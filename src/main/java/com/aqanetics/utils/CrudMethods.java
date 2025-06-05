@@ -37,22 +37,25 @@ public class CrudMethods {
         HttpEntity requestEntity = new StringEntity(postBody, ContentType.APPLICATION_JSON);
         httpPost.setEntity(requestEntity);
 
-        return httpClient.execute(httpPost, response -> {
-          int statusCode = response.getCode();
-          LOGGER.debug("API call to '{}' returned code: {}", uri, statusCode);
+        return httpClient.execute(
+            httpPost,
+            response -> {
+              int statusCode = response.getCode();
+              LOGGER.debug("API call to '{}' returned code: {}", uri, statusCode);
 
-          HttpEntity responseEntity = response.getEntity();
-          if (responseEntity != null) {
-            try {
-              return EntityUtils.toString(responseEntity);
-            } catch (ParseException e) {
-              LOGGER.error("Failed to parse response entity from '{}': {}", uri, e.getMessage());
+              HttpEntity responseEntity = response.getEntity();
+              if (responseEntity != null) {
+                try {
+                  return EntityUtils.toString(responseEntity);
+                } catch (ParseException e) {
+                  LOGGER.error(
+                      "Failed to parse response entity from '{}': {}", uri, e.getMessage());
+                  return null;
+                }
+              }
+              LOGGER.error("Response from '{}' is null", uri);
               return null;
-            }
-          }
-          LOGGER.error("Response from '{}' is null", uri);
-          return null;
-        });
+            });
       } catch (IOException e) {
         LOGGER.error("Failed API call to '{}': {}", uri, e.getMessage());
         return null;
@@ -64,36 +67,43 @@ public class CrudMethods {
   }
 
   public static String sendSuitePatch(Map<String, Object> updatedParameters) {
-    if (AqaConfigLoader.ENABLED && ExecutionEntities.suiteExecutionId != null
+    if (AqaConfigLoader.ENABLED
+        && ExecutionEntities.suiteExecutionId != null
         && AqaConfigLoader.API_ENDPOINT != null) {
 
       try (CloseableHttpClient client = HttpClients.createDefault()) {
-        HttpPatch httpPatch = new HttpPatch(URI.create(
-            AqaConfigLoader.API_ENDPOINT + AGENT_API_ENDPOINT + SUITE_API_ENDPOINT
-            + ExecutionEntities.suiteExecutionId));
+        HttpPatch httpPatch =
+            new HttpPatch(
+                URI.create(
+                    AqaConfigLoader.API_ENDPOINT
+                        + AGENT_API_ENDPOINT
+                        + SUITE_API_ENDPOINT
+                        + ExecutionEntities.suiteExecutionId));
         httpPatch.setHeader("Content-Type", ContentType.APPLICATION_JSON.getMimeType());
 
         String postBody = AqaConfigLoader.OBJECT_MAPPER.writeValueAsString(updatedParameters);
         HttpEntity requestEntity = new StringEntity(postBody, ContentType.APPLICATION_JSON);
         httpPatch.setEntity(requestEntity);
 
-        return client.execute(httpPatch, response -> {
-          int statusCode = response.getCode();
-          LOGGER.debug("API call to 'patch' returned code: {}", statusCode);
+        return client.execute(
+            httpPatch,
+            response -> {
+              int statusCode = response.getCode();
+              LOGGER.debug("API call to 'patch' returned code: {}", statusCode);
 
-          HttpEntity responseEntity = response.getEntity();
-          if (responseEntity != null) {
-            try {
-              return EntityUtils.toString(responseEntity);
-            } catch (ParseException e) {
-              LOGGER.error("Failed to parse response entity from patch endpoint: {}",
-                  e.getMessage());
+              HttpEntity responseEntity = response.getEntity();
+              if (responseEntity != null) {
+                try {
+                  return EntityUtils.toString(responseEntity);
+                } catch (ParseException e) {
+                  LOGGER.error(
+                      "Failed to parse response entity from patch endpoint: {}", e.getMessage());
+                  return null;
+                }
+              }
+              LOGGER.error("Response from 'patch' is null");
               return null;
-            }
-          }
-          LOGGER.error("Response from 'patch' is null");
-          return null;
-        });
+            });
       } catch (IOException e) {
         LOGGER.error("Failed API call to patch: {}", e.getMessage());
         return null;
@@ -107,11 +117,13 @@ public class CrudMethods {
   }
 
   public static void postLog(String postBody) {
-    URI uri = URI.create(
-        AqaConfigLoader.API_ENDPOINT + AqaConfigLoader.AGENT_API_ENDPOINT
-        + AqaConfigLoader.TEST_API_ENDPOINT
-        + ExecutionEntities.inProgressTestExecutionId.toString()
-        + AqaConfigLoader.LOG_API_ENDPOINT);
+    URI uri =
+        URI.create(
+            AqaConfigLoader.API_ENDPOINT
+                + AqaConfigLoader.AGENT_API_ENDPOINT
+                + AqaConfigLoader.TEST_API_ENDPOINT
+                + ExecutionEntities.inProgressTestExecutionId.toString()
+                + AqaConfigLoader.LOG_API_ENDPOINT);
 
     try (CloseableHttpClient client = HttpClients.createDefault()) {
       HttpPost httpPost = new HttpPost(uri);
@@ -127,20 +139,20 @@ public class CrudMethods {
     }
   }
 
-  public static void postExecutionArtifact(String url, File artifact, String fileName,
-      boolean ofTestExecution) {
-    if (AqaConfigLoader.API_ENDPOINT != null && (
-        (ofTestExecution && ExecutionEntities.testExecution != null) || (!ofTestExecution &&
-                                                                         ExecutionEntities.suiteExecutionId
-                                                                         != null))) {
+  public static void postExecutionArtifact(
+      String url, File artifact, String fileName, boolean ofTestExecution) {
+    if (AqaConfigLoader.API_ENDPOINT != null
+        && ((ofTestExecution && ExecutionEntities.testExecution != null)
+            || (!ofTestExecution && ExecutionEntities.suiteExecutionId != null))) {
       try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
-        HttpEntity multipartEntity = MultipartEntityBuilder.create()
-            .addBinaryBody("file", artifact, ContentType.DEFAULT_BINARY, fileName)
-            .build();
-        ClassicHttpRequest httpPost = ClassicRequestBuilder.post(url).setEntity(multipartEntity)
-            .build();
-        Integer responseCode = httpClient.execute(httpPost,
-            org.apache.hc.core5.http.HttpResponse::getCode);
+        HttpEntity multipartEntity =
+            MultipartEntityBuilder.create()
+                .addBinaryBody("file", artifact, ContentType.DEFAULT_BINARY, fileName)
+                .build();
+        ClassicHttpRequest httpPost =
+            ClassicRequestBuilder.post(url).setEntity(multipartEntity).build();
+        Integer responseCode =
+            httpClient.execute(httpPost, org.apache.hc.core5.http.HttpResponse::getCode);
         LOGGER.info("Response Code: {}", responseCode);
       } catch (IOException e) {
         LOGGER.info("Failed to upload artifact: {}", e.getMessage());

@@ -39,16 +39,16 @@ import org.testng.xml.XmlSuite;
 public class SuiteExecutionListener implements ISuiteListener, IInvokedMethodListener {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(SuiteExecutionListener.class);
-  private static final String SAVE_PARAMETER_PREFIX = AqaConfigLoader.getProperty(
-      "aqa-trace.save-parameter-prefix", null);
-  private static final boolean FAIL_SUITE_ON_CONF_FAIL = Objects.equals(
-      AqaConfigLoader.getProperty("aqa-trace.fail-suite-on-configuration-failures", "false"),
-      "true");
-  private static final boolean ENABLED_ARTIFACTS = Objects.equals(
-      AqaConfigLoader.getProperty("aqa-trace.artifacts.enabled", "false"), "true");
+  private static final String SAVE_PARAMETER_PREFIX =
+      AqaConfigLoader.getProperty("aqa-trace.save-parameter-prefix", null);
+  private static final boolean FAIL_SUITE_ON_CONF_FAIL =
+      Objects.equals(
+          AqaConfigLoader.getProperty("aqa-trace.fail-suite-on-configuration-failures", "false"),
+          "true");
+  private static final boolean ENABLED_ARTIFACTS =
+      Objects.equals(AqaConfigLoader.getProperty("aqa-trace.artifacts.enabled", "false"), "true");
 
-  public SuiteExecutionListener() {
-  }
+  public SuiteExecutionListener() {}
 
   @Override
   public void onStart(ISuite suite) {
@@ -63,7 +63,8 @@ public class SuiteExecutionListener implements ISuiteListener, IInvokedMethodLis
   }
 
   /**
-   * Reads all parameters from xml suite and creates {@link NewSuiteExecutionDto} with all required data and sends it to AQA-trace server.
+   * Reads all parameters from xml suite and creates {@link NewSuiteExecutionDto} with all required
+   * data and sends it to AQA-trace server.
    *
    * @param suite testNG suite entity
    */
@@ -71,39 +72,40 @@ public class SuiteExecutionListener implements ISuiteListener, IInvokedMethodLis
     List<ParameterDto> parameters = new ArrayList<>();
     if (SAVE_PARAMETER_PREFIX != null) {
       Map<String, String> allParameters = suite.getXmlSuite().getAllParameters();
-      List<String> keys = allParameters.keySet().stream()
-          .filter((key) -> key.toLowerCase().startsWith(SAVE_PARAMETER_PREFIX.toLowerCase()))
-          .toList();
-      keys.forEach((key) -> {
-        String[] values = allParameters.get(key).split(";");
-        String valueText = values[0];
-        Long valueNumeric = Long.valueOf(values[1]);
-        parameters.add(
-            new ParameterDto(key.replace(SAVE_PARAMETER_PREFIX + "_", ""), valueNumeric,
-                valueText));
-      });
+      List<String> keys =
+          allParameters.keySet().stream()
+              .filter((key) -> key.toLowerCase().startsWith(SAVE_PARAMETER_PREFIX.toLowerCase()))
+              .toList();
+      keys.forEach(
+          (key) -> {
+            String[] values = allParameters.get(key).split(";");
+            String valueText = values[0];
+            Long valueNumeric = Long.valueOf(values[1]);
+            parameters.add(
+                new ParameterDto(
+                    key.replace(SAVE_PARAMETER_PREFIX + "_", ""), valueNumeric, valueText));
+          });
     }
 
-    OrganizationDto organizationDto = new OrganizationDto(
-        getProperty("aqa-trace.organization", "unknown"));
+    OrganizationDto organizationDto =
+        new OrganizationDto(getProperty("aqa-trace.organization", "unknown"));
     LOGGER.info(organizationDto.toString());
 
-    NewSuiteExecutionDto newSuiteExecution = new NewSuiteExecutionDto(Instant.now(), true,
-        parameters,
-        organizationDto, hostName);
+    NewSuiteExecutionDto newSuiteExecution =
+        new NewSuiteExecutionDto(Instant.now(), true, parameters, organizationDto, hostName);
 
     LOGGER.info("Posting new suite execution {}", newSuiteExecution);
 
     try {
-      String response = CrudMethods.sendPost(
-          URI.create(
-              API_ENDPOINT + AGENT_API_ENDPOINT + SUITE_API_ENDPOINT + "new"),
-          AqaConfigLoader.OBJECT_MAPPER.writeValueAsString(newSuiteExecution));
+      String response =
+          CrudMethods.sendPost(
+              URI.create(API_ENDPOINT + AGENT_API_ENDPOINT + SUITE_API_ENDPOINT + "new"),
+              AqaConfigLoader.OBJECT_MAPPER.writeValueAsString(newSuiteExecution));
       if (response != null) {
         JsonNode rootNode = AqaConfigLoader.OBJECT_MAPPER.readTree(response);
         ExecutionEntities.suiteExecutionId = rootNode.get("id").asLong();
-        LOGGER.info("Registered new suite execution with id: {}",
-            ExecutionEntities.suiteExecutionId);
+        LOGGER.info(
+            "Registered new suite execution with id: {}", ExecutionEntities.suiteExecutionId);
       }
     } catch (JsonProcessingException e) {
       throw new RuntimeException(e);
@@ -118,8 +120,8 @@ public class SuiteExecutionListener implements ISuiteListener, IInvokedMethodLis
       if (response != null) {
         JsonNode rootNode = AqaConfigLoader.OBJECT_MAPPER.readTree(response);
         ExecutionEntities.suiteExecutionId = rootNode.get("id").asLong();
-        LOGGER.debug("Received updated suiteExecution with id: {}",
-            ExecutionEntities.suiteExecutionId);
+        LOGGER.debug(
+            "Received updated suiteExecution with id: {}", ExecutionEntities.suiteExecutionId);
       }
 
     } catch (JsonProcessingException e) {
@@ -134,12 +136,16 @@ public class SuiteExecutionListener implements ISuiteListener, IInvokedMethodLis
       Map<String, Object> jsonPayload = new HashMap<>();
       jsonPayload.put("endTime", Instant.now().toString());
       jsonPayload.put("inProgress", false);
-      boolean allPassed = suite.getResults().values().stream().allMatch(
-          (result) -> result.getTestContext().getFailedTests().size() == 0
-                      && result.getTestContext().getSkippedTests().size() == 0 && (
-                          !FAIL_SUITE_ON_CONF_FAIL || (
-                              result.getTestContext().getFailedConfigurations().size() == 0
-                              && result.getTestContext().getFailedConfigurations().size() == 0)));
+      boolean allPassed =
+          suite.getResults().values().stream()
+              .allMatch(
+                  (result) ->
+                      result.getTestContext().getFailedTests().size() == 0
+                          && result.getTestContext().getSkippedTests().size() == 0
+                          && (!FAIL_SUITE_ON_CONF_FAIL
+                              || (result.getTestContext().getFailedConfigurations().size() == 0
+                                  && result.getTestContext().getFailedConfigurations().size()
+                                      == 0)));
 
       jsonPayload.put("status", allPassed ? "PASSED" : "FAILED");
       this.updateSuiteExecution(jsonPayload);
@@ -149,9 +155,15 @@ public class SuiteExecutionListener implements ISuiteListener, IInvokedMethodLis
   private void uploadXmlSuiteFile(XmlSuite xmlSuite) {
     LOGGER.info("Uploading XML suite file {} - {}", xmlSuite.getName(), ENABLED_ARTIFACTS);
     if (ENABLED_ARTIFACTS) {
-      String url = API_ENDPOINT + AGENT_API_ENDPOINT + SUITE_API_ENDPOINT
-                   + ExecutionEntities.suiteExecutionId + ARTIFACTS_ENDPOINT;
-      LOGGER.info("Uploading suite execution {} to suite execution {}", xmlSuite.getName(),
+      String url =
+          API_ENDPOINT
+              + AGENT_API_ENDPOINT
+              + SUITE_API_ENDPOINT
+              + ExecutionEntities.suiteExecutionId
+              + ARTIFACTS_ENDPOINT;
+      LOGGER.info(
+          "Uploading suite execution {} to suite execution {}",
+          xmlSuite.getName(),
           ExecutionEntities.suiteExecutionId);
 
       File suiteFile = null;
