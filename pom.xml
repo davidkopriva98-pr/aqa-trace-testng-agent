@@ -110,6 +110,18 @@
         <groupId>org.sonatype.central</groupId>
         <version>0.6.0</version>
       </plugin>
+      <plugin>
+        <artifactId>fmt-maven-plugin</artifactId>
+        <executions>
+          <execution>
+            <goals>
+              <goal>format</goal>
+            </goals>
+          </execution>
+        </executions>
+        <groupId>com.spotify.fmt</groupId>
+        <version>2.27</version>
+      </plugin>
     </plugins>
     <resources>
       <resource>
@@ -191,6 +203,8 @@
   </organization>
   <packaging>jar</packaging>
   <properties>
+    <git-code-format-maven-plugin.version>5.3</git-code-format-maven-plugin.version>
+    <git-code-format-maven-plugin.version>5.3</git-code-format-maven-plugin.version>
     <maven.compiler.source>21</maven.compiler.source>
     <maven.compiler.target>21</maven.compiler.target>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
