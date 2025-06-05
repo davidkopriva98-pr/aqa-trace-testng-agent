@@ -65,19 +65,5 @@ public class Log4j2Appender extends AbstractAppender {
     }
 
   }
-
-  /*private void sendPost(String postBody) {
-    try {
-      HttpClient client = HttpClient.newHttpClient();
-      HttpRequest request = HttpRequest.newBuilder().uri(
-              URI.create(AqaConfigLoader.API_ENDPOINT + TEST_API_ENDPOINT
-                         + ExecutionEntities.inProgressTestExecutionId.toString() + LOG_API_ENDPOINT))
-          .header("Content-Type", "application/json").POST(
-              BodyPublishers.ofString(postBody)).build();
-      client.send(request, BodyHandlers.ofString());
-    } catch (Exception e) {
-      throw new RuntimeException(e);
-    }
-  }*/
 }
 
