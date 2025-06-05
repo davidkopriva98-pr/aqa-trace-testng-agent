@@ -1,9 +1,7 @@
 package com.aqanetics.utils;
 
 import static com.aqanetics.AqaConfigLoader.AGENT_API_ENDPOINT;
-import static com.aqanetics.AqaConfigLoader.LOG_API_ENDPOINT;
 import static com.aqanetics.AqaConfigLoader.SUITE_API_ENDPOINT;
-import static com.aqanetics.AqaConfigLoader.TEST_API_ENDPOINT;
 
 import com.aqanetics.AqaConfigLoader;
 import com.aqanetics.agent.testng.ExecutionEntities;
@@ -11,18 +9,18 @@ import com.aqanetics.exception.ArtifactException;
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpRequest.BodyPublishers;
-import java.net.http.HttpResponse;
-import java.net.http.HttpResponse.BodyHandlers;
 import java.util.Map;
+import org.apache.hc.client5.http.classic.methods.HttpPatch;
+import org.apache.hc.client5.http.classic.methods.HttpPost;
 import org.apache.hc.client5.http.entity.mime.MultipartEntityBuilder;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
 import org.apache.hc.client5.http.impl.classic.HttpClients;
 import org.apache.hc.core5.http.ClassicHttpRequest;
 import org.apache.hc.core5.http.ContentType;
 import org.apache.hc.core5.http.HttpEntity;
+import org.apache.hc.core5.http.ParseException;
+import org.apache.hc.core5.http.io.entity.EntityUtils;
+import org.apache.hc.core5.http.io.entity.StringEntity;
 import org.apache.hc.core5.http.io.support.ClassicRequestBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,16 +31,30 @@ public class CrudMethods {
 
   public static String sendPost(URI uri, String postBody) {
     if (AqaConfigLoader.ENABLED && AqaConfigLoader.API_ENDPOINT != null) {
-      try {
-        HttpClient client = HttpClient.newHttpClient();
-        HttpRequest request = HttpRequest.newBuilder().uri(uri)
-            .header("Content-Type", "application/json").POST(BodyPublishers.ofString(postBody))
-            .build();
-        HttpResponse<String> response = client.send(request, BodyHandlers.ofString());
-        LOGGER.debug("API call to '{}' returned code: {}", uri.toString(), response.statusCode());
-        return response.body();
-      } catch (Exception e) {
-        LOGGER.error("Failed API call to '{}': {}", uri.toString(), e.getMessage());
+      try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
+        HttpPost httpPost = new HttpPost(uri);
+        httpPost.setHeader("Content-Type", ContentType.APPLICATION_JSON.getMimeType());
+        HttpEntity requestEntity = new StringEntity(postBody, ContentType.APPLICATION_JSON);
+        httpPost.setEntity(requestEntity);
+
+        return httpClient.execute(httpPost, response -> {
+          int statusCode = response.getCode();
+          LOGGER.debug("API call to '{}' returned code: {}", uri, statusCode);
+
+          HttpEntity responseEntity = response.getEntity();
+          if (responseEntity != null) {
+            try {
+              return EntityUtils.toString(responseEntity);
+            } catch (ParseException e) {
+              LOGGER.error("Failed to parse response entity from '{}': {}", uri, e.getMessage());
+              return null;
+            }
+          }
+          LOGGER.error("Response from '{}' is null", uri);
+          return null;
+        });
+      } catch (IOException e) {
+        LOGGER.error("Failed API call to '{}': {}", uri, e.getMessage());
         return null;
       }
     } else {
@@ -54,18 +66,39 @@ public class CrudMethods {
   public static String sendSuitePatch(Map<String, Object> updatedParameters) {
     if (AqaConfigLoader.ENABLED && ExecutionEntities.suiteExecutionId != null
         && AqaConfigLoader.API_ENDPOINT != null) {
-      try {
-        HttpClient client = HttpClient.newHttpClient();
-        HttpRequest request = HttpRequest.newBuilder().uri(URI.create(
-                AqaConfigLoader.API_ENDPOINT + AGENT_API_ENDPOINT + SUITE_API_ENDPOINT
-                + ExecutionEntities.suiteExecutionId)).header("Content-Type", "application/json")
-            .method("PATCH", BodyPublishers.ofString(
-                AqaConfigLoader.OBJECT_MAPPER.writeValueAsString(updatedParameters))).build();
-        HttpResponse<String> response = client.send(request, BodyHandlers.ofString());
-        LOGGER.debug("API call to 'patch' returned code: {}", response.statusCode());
-        return response.body();
-      } catch (Exception e) {
+
+      try (CloseableHttpClient client = HttpClients.createDefault()) {
+        HttpPatch httpPatch = new HttpPatch(URI.create(
+            AqaConfigLoader.API_ENDPOINT + AGENT_API_ENDPOINT + SUITE_API_ENDPOINT
+            + ExecutionEntities.suiteExecutionId));
+        httpPatch.setHeader("Content-Type", ContentType.APPLICATION_JSON.getMimeType());
+
+        String postBody = AqaConfigLoader.OBJECT_MAPPER.writeValueAsString(updatedParameters);
+        HttpEntity requestEntity = new StringEntity(postBody, ContentType.APPLICATION_JSON);
+        httpPatch.setEntity(requestEntity);
+
+        return client.execute(httpPatch, response -> {
+          int statusCode = response.getCode();
+          LOGGER.debug("API call to 'patch' returned code: {}", statusCode);
+
+          HttpEntity responseEntity = response.getEntity();
+          if (responseEntity != null) {
+            try {
+              return EntityUtils.toString(responseEntity);
+            } catch (ParseException e) {
+              LOGGER.error("Failed to parse response entity from patch endpoint: {}",
+                  e.getMessage());
+              return null;
+            }
+          }
+          LOGGER.error("Response from 'patch' is null");
+          return null;
+        });
+      } catch (IOException e) {
         LOGGER.error("Failed API call to patch: {}", e.getMessage());
+        return null;
+      } catch (Exception e) {
+        LOGGER.error("Failed to serialize parameters for PATCH request: {}", e.getMessage());
         return null;
       }
     } else {
@@ -74,16 +107,23 @@ public class CrudMethods {
   }
 
   public static void postLog(String postBody) {
-    try {
-      HttpClient client = HttpClient.newHttpClient();
-      HttpRequest request = HttpRequest.newBuilder().uri(
-              URI.create(AqaConfigLoader.API_ENDPOINT + AGENT_API_ENDPOINT + TEST_API_ENDPOINT
-                         + ExecutionEntities.inProgressTestExecutionId.toString() + LOG_API_ENDPOINT))
-          .header("Content-Type", "application/json").POST(
-              BodyPublishers.ofString(postBody)).build();
-      client.send(request, BodyHandlers.ofString());
-    } catch (Exception e) {
-      throw new RuntimeException(e);
+    URI uri = URI.create(
+        AqaConfigLoader.API_ENDPOINT + AqaConfigLoader.AGENT_API_ENDPOINT
+        + AqaConfigLoader.TEST_API_ENDPOINT
+        + ExecutionEntities.inProgressTestExecutionId.toString()
+        + AqaConfigLoader.LOG_API_ENDPOINT);
+
+    try (CloseableHttpClient client = HttpClients.createDefault()) {
+      HttpPost httpPost = new HttpPost(uri);
+
+      httpPost.setHeader("Content-Type", ContentType.APPLICATION_JSON.getMimeType());
+      HttpEntity requestEntity = new StringEntity(postBody, ContentType.APPLICATION_JSON);
+      httpPost.setEntity(requestEntity);
+
+      client.execute(httpPost, response -> null);
+
+    } catch (IOException e) {
+      throw new RuntimeException("Failed to send log POST request", e);
     }
   }
 
