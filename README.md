@@ -38,7 +38,7 @@ Supported properties:
 | `aqa-trace.save-parameter-prefix`  | string | / | false | If you want to save additional execution
 information |
 | `aqa-trace.fail-suite-on-configuration-failures`  | boolean | false | false | Mark suite
-execeution as failed if any tests are skipped |
+execution as failed if any tests are skipped |
 | `aqa-trace.server.hostname`  | string | / | true | URL of AQA Trace server |
 | `aqa-trace.artifacts.enabled`  | boolean | false | false | Upload artifacts to AQA Trace * |
 | `aqa-trace.artifacts.test-error-screenshot`  | boolean | false | false | Upload test error
