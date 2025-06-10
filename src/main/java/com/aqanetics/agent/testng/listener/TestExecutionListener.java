@@ -1,16 +1,16 @@
 package com.aqanetics.agent.testng.listener;
 
-import static com.aqanetics.AqaConfigLoader.AGENT_API_ENDPOINT;
-import static com.aqanetics.AqaConfigLoader.SUITE_API_ENDPOINT;
-import static com.aqanetics.AqaConfigLoader.TEST_API_ENDPOINT;
+import static com.aqanetics.agent.config.AqaConfigLoader.AGENT_API_ENDPOINT;
+import static com.aqanetics.agent.config.AqaConfigLoader.SUITE_API_ENDPOINT;
+import static com.aqanetics.agent.config.AqaConfigLoader.TEST_API_ENDPOINT;
 
-import com.aqanetics.AqaConfigLoader;
+import com.aqanetics.agent.config.AqaConfigLoader;
+import com.aqanetics.agent.core.dto.MinimalTestExecutionDto;
+import com.aqanetics.agent.core.dto.NewTestExecutionDto;
+import com.aqanetics.agent.core.dto.TestExecutionLogDto;
 import com.aqanetics.agent.testng.ExecutionEntities;
-import com.aqanetics.agent.testng.dto.MinimalTestExecutionDto;
-import com.aqanetics.agent.testng.dto.NewTestExecutionDto;
-import com.aqanetics.agent.testng.dto.TestExecutionLogDto;
-import com.aqanetics.utils.AQATraceIgnore;
-import com.aqanetics.utils.CrudMethods;
+import com.aqanetics.agent.utils.AQATraceIgnore;
+import com.aqanetics.agent.utils.CrudMethods;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.net.URI;
