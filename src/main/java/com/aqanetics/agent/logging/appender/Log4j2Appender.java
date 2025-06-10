@@ -1,9 +1,9 @@
-package com.aqanetics.logging.appender;
+package com.aqanetics.agent.logging.appender;
 
-import com.aqanetics.AqaConfigLoader;
+import com.aqanetics.agent.config.AqaConfigLoader;
+import com.aqanetics.agent.core.dto.TestExecutionLogDto;
 import com.aqanetics.agent.testng.ExecutionEntities;
-import com.aqanetics.agent.testng.dto.TestExecutionLogDto;
-import com.aqanetics.utils.CrudMethods;
+import com.aqanetics.agent.utils.CrudMethods;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import java.time.Instant;
 import java.util.Arrays;
@@ -26,6 +26,9 @@ public class Log4j2Appender extends AbstractAppender {
       Objects.equals(AqaConfigLoader.getProperty("aqa-trace.logging.enabled", "false"), "true");
   private static final String[] LOGS_ONLY_FROM_PACKAGES =
       AqaConfigLoader.getProperty("aqa-trace.logging.only-from-package", "").split(",");
+  private static final String[] EXCLUDE_LOGS_FROM_PACKAGES =
+      AqaConfigLoader.getProperty("aqa-trace.logging.exclude-from-package", "com.aqanetics.agent")
+          .split(",");
 
   private static final Function<LogEvent, TestExecutionLogDto> CONVERTER =
       (e) ->
@@ -48,14 +51,19 @@ public class Log4j2Appender extends AbstractAppender {
     return new Log4j2Appender(name, layout);
   }
 
+  private boolean checkLoggerName(String loggerName) {
+    return (LOGS_ONLY_FROM_PACKAGES.length == 0
+            || Arrays.stream(LOGS_ONLY_FROM_PACKAGES).anyMatch(loggerName::startsWith))
+        && (EXCLUDE_LOGS_FROM_PACKAGES.length == 0
+            || Arrays.stream(EXCLUDE_LOGS_FROM_PACKAGES).noneMatch(loggerName::startsWith));
+  }
+
   public void append(LogEvent event) {
+    System.out.println(event.getLoggerName());
     if (ENABLED_LOGGING
         && AqaConfigLoader.API_ENDPOINT != null
-        && !event.getLoggerName().startsWith("com.aqanetics.agent.testng")
         && ExecutionEntities.inProgressTestExecutionId != null
-        && (LOGS_ONLY_FROM_PACKAGES.length == 0
-            || Arrays.stream(LOGS_ONLY_FROM_PACKAGES)
-                .anyMatch((s) -> event.getLoggerName().startsWith(s)))) {
+        && checkLoggerName(event.getLoggerName())) {
       try {
         CrudMethods.postLog(
             AqaConfigLoader.OBJECT_MAPPER.writeValueAsString(CONVERTER.apply(event)));
