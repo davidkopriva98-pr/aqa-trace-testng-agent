@@ -1,4 +1,4 @@
-package com.aqanetics.exception;
+package com.aqanetics.agent.core.exception;
 
 public class ArtifactException extends RuntimeException {
 

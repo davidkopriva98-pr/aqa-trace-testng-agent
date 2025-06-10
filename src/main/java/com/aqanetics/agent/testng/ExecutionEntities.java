@@ -1,6 +1,6 @@
 package com.aqanetics.agent.testng;
 
-import com.aqanetics.agent.testng.dto.MinimalTestExecutionDto;
+import com.aqanetics.agent.core.dto.MinimalTestExecutionDto;
 
 public class ExecutionEntities {
 

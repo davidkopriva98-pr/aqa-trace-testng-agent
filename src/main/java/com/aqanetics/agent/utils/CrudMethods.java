@@ -1,11 +1,11 @@
-package com.aqanetics.utils;
+package com.aqanetics.agent.utils;
 
-import static com.aqanetics.AqaConfigLoader.AGENT_API_ENDPOINT;
-import static com.aqanetics.AqaConfigLoader.SUITE_API_ENDPOINT;
+import static com.aqanetics.agent.config.AqaConfigLoader.AGENT_API_ENDPOINT;
+import static com.aqanetics.agent.config.AqaConfigLoader.SUITE_API_ENDPOINT;
 
-import com.aqanetics.AqaConfigLoader;
+import com.aqanetics.agent.config.AqaConfigLoader;
+import com.aqanetics.agent.core.exception.ArtifactException;
 import com.aqanetics.agent.testng.ExecutionEntities;
-import com.aqanetics.exception.ArtifactException;
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;

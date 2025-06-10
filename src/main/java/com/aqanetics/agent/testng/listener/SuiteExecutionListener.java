@@ -1,18 +1,18 @@
 package com.aqanetics.agent.testng.listener;
 
-import static com.aqanetics.AqaConfigLoader.AGENT_API_ENDPOINT;
-import static com.aqanetics.AqaConfigLoader.API_ENDPOINT;
-import static com.aqanetics.AqaConfigLoader.ARTIFACTS_ENDPOINT;
-import static com.aqanetics.AqaConfigLoader.SUITE_API_ENDPOINT;
-import static com.aqanetics.AqaConfigLoader.getProperty;
-import static com.aqanetics.utils.CrudMethods.postExecutionArtifact;
+import static com.aqanetics.agent.config.AqaConfigLoader.AGENT_API_ENDPOINT;
+import static com.aqanetics.agent.config.AqaConfigLoader.API_ENDPOINT;
+import static com.aqanetics.agent.config.AqaConfigLoader.ARTIFACTS_ENDPOINT;
+import static com.aqanetics.agent.config.AqaConfigLoader.SUITE_API_ENDPOINT;
+import static com.aqanetics.agent.config.AqaConfigLoader.getProperty;
+import static com.aqanetics.agent.utils.CrudMethods.postExecutionArtifact;
 
-import com.aqanetics.AqaConfigLoader;
+import com.aqanetics.agent.config.AqaConfigLoader;
+import com.aqanetics.agent.core.dto.NewSuiteExecutionDto;
+import com.aqanetics.agent.core.dto.OrganizationDto;
+import com.aqanetics.agent.core.dto.ParameterDto;
 import com.aqanetics.agent.testng.ExecutionEntities;
-import com.aqanetics.agent.testng.dto.NewSuiteExecutionDto;
-import com.aqanetics.agent.testng.dto.OrganizationDto;
-import com.aqanetics.agent.testng.dto.ParameterDto;
-import com.aqanetics.utils.CrudMethods;
+import com.aqanetics.agent.utils.CrudMethods;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import java.io.File;

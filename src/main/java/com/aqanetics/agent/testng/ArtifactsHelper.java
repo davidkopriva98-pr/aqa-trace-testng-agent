@@ -1,13 +1,13 @@
 package com.aqanetics.agent.testng;
 
-import static com.aqanetics.AqaConfigLoader.AGENT_API_ENDPOINT;
-import static com.aqanetics.AqaConfigLoader.API_ENDPOINT;
-import static com.aqanetics.AqaConfigLoader.ARTIFACTS_ENDPOINT;
-import static com.aqanetics.AqaConfigLoader.SUITE_API_ENDPOINT;
-import static com.aqanetics.AqaConfigLoader.TEST_API_ENDPOINT;
-import static com.aqanetics.utils.CrudMethods.postExecutionArtifact;
+import static com.aqanetics.agent.config.AqaConfigLoader.AGENT_API_ENDPOINT;
+import static com.aqanetics.agent.config.AqaConfigLoader.API_ENDPOINT;
+import static com.aqanetics.agent.config.AqaConfigLoader.ARTIFACTS_ENDPOINT;
+import static com.aqanetics.agent.config.AqaConfigLoader.SUITE_API_ENDPOINT;
+import static com.aqanetics.agent.config.AqaConfigLoader.TEST_API_ENDPOINT;
+import static com.aqanetics.agent.utils.CrudMethods.postExecutionArtifact;
 
-import com.aqanetics.AqaConfigLoader;
+import com.aqanetics.agent.config.AqaConfigLoader;
 import java.io.File;
 import java.util.Objects;
 import org.slf4j.Logger;
