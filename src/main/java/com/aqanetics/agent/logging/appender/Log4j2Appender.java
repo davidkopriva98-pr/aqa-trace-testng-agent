@@ -59,7 +59,6 @@ public class Log4j2Appender extends AbstractAppender {
   }
 
   public void append(LogEvent event) {
-    System.out.println(event.getLoggerName());
     if (ENABLED_LOGGING
         && AqaConfigLoader.API_ENDPOINT != null
         && ExecutionEntities.inProgressTestExecutionId != null
