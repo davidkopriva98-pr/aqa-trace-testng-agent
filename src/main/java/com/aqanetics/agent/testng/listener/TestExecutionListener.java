@@ -54,7 +54,7 @@ public class TestExecutionListener
         return null;
       }
     } catch (Exception e) {
-      LOGGER.error("Error posting testExecution: {}", e.getMessage());
+      LOGGER.error("Error posting new testExecution: {}", e.getMessage());
       return null;
     }
   }
@@ -78,7 +78,7 @@ public class TestExecutionListener
         ExecutionEntities.inProgressTestExecutionId = testExecution.id();
       }
     } catch (Exception e) {
-      LOGGER.error("Error posting testExecution: {}", e.getMessage());
+      LOGGER.error("Error posting start testExecution: {}", e.getMessage());
     }
   }
 
@@ -104,7 +104,7 @@ public class TestExecutionListener
         return null;
       }
     } catch (Exception e) {
-      LOGGER.error("Error posting testExecution: {}", e.getMessage());
+      LOGGER.error("Error posting end testExecution: {}", e.getMessage());
       return null;
     }
   }
@@ -168,6 +168,8 @@ public class TestExecutionListener
         LOGGER.debug("Config method starting: {}", newTestExecution);
         if (ExecutionEntities.testExecution == null
             || !Objects.equals(ExecutionEntities.testExecution.testName(), tm.getMethodName())) {
+          // Checking if @Test is already created in DB. If not we create it and set it as SKIPPED
+          // in case configuration method fails.
 
           ExecutionEntities.testExecution =
               this.registerNewTestExecution(
@@ -280,6 +282,7 @@ public class TestExecutionListener
             new HashMap<>(
                 Map.ofEntries(
                     Map.entry("startTime", Instant.now().toString()),
+                    Map.entry("status", "null"),
                     Map.entry("sessionId", context.getAttribute("sessionId"))));
         if (retryCount > 0) {
           values.put("retryCount", retryCount);
