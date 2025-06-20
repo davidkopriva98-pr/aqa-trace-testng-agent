@@ -12,6 +12,7 @@ public record NewTestExecutionDto(
     Boolean inProgress,
     Instant startTime,
     Integer retryCount,
+    Long partOf,
     Long retryOf,
     String sessionId) {
 
@@ -23,7 +24,8 @@ public record NewTestExecutionDto(
       String testClasspath,
       Instant createdTime,
       Boolean inProgress,
-      String sessionId) {
+      String sessionId,
+      Long retryOf) {
     this(
         testName,
         testClassName,
@@ -35,6 +37,7 @@ public record NewTestExecutionDto(
         null,
         null,
         null,
+        retryOf,
         sessionId);
   }
 
@@ -46,7 +49,8 @@ public record NewTestExecutionDto(
       Instant createdTime,
       Boolean inProgress,
       Instant startTime,
-      String sessionId) {
+      String sessionId,
+      Long partOf) {
     this(
         testName,
         testClassName,
@@ -57,6 +61,7 @@ public record NewTestExecutionDto(
         inProgress,
         startTime,
         null,
+        partOf,
         null,
         sessionId);
   }
@@ -82,6 +87,7 @@ public record NewTestExecutionDto(
         inProgress,
         startTime,
         retryCount,
+        null,
         retryOf,
         sessionId);
   }

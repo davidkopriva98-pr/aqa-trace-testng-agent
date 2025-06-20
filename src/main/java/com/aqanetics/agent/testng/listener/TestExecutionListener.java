@@ -152,24 +152,16 @@ public class TestExecutionListener
       AQATraceIgnore ignore =
           tr.getMethod().getConstructorOrMethod().getMethod().getAnnotation(AQATraceIgnore.class);
       if ((ignore == null || !ignore.value())) {
-
         String sessionId = tr.getTestContext().getAttribute("sessionId").toString();
 
-        NewTestExecutionDto newTestExecution =
-            new NewTestExecutionDto(
-                tr.getMethod().getMethodName(),
-                tm.getTestClass().getRealClass().getSimpleName(),
-                tr.getMethod().isBeforeMethodConfiguration() ? "BeforeMethod" : "AfterMethod",
-                tr.getTestClass().getName(),
-                Instant.now(),
-                true,
-                Instant.now(),
-                sessionId);
-        LOGGER.debug("Config method starting: {}", newTestExecution);
+        LOGGER.debug("Config method starting");
         if (ExecutionEntities.testExecution == null
-            || !Objects.equals(ExecutionEntities.testExecution.testName(), tm.getMethodName())) {
-          // Checking if @Test is already created in DB. If not we create it and set it as SKIPPED
+            || !Objects.equals(ExecutionEntities.testExecution.testName(), tm.getMethodName())
+            || (tr.getMethod().isBeforeMethodConfiguration()
+                && ExecutionEntities.testExecution.endTime() != null)) {
+          // Checking if @Test is already created in DB. If not, we create it and set it as SKIPPED
           // in case configuration method fails.
+          ExecutionEntities.prevTestExecution = ExecutionEntities.testExecution;
 
           ExecutionEntities.testExecution =
               this.registerNewTestExecution(
@@ -181,17 +173,32 @@ public class TestExecutionListener
                       tr.getTestClass().getName(),
                       Instant.now(),
                       false,
-                      sessionId));
+                      sessionId,
+                      ExecutionEntities.prevTestExecution != null
+                          ? ExecutionEntities.prevTestExecution.id()
+                          : null));
           LOGGER.info(
               "Test execution {} was missing for current configuration method",
               ExecutionEntities.testExecution.id());
         }
 
-        ExecutionEntities.currentNotTestExecution = this.registerNewTestExecution(newTestExecution);
-        ExecutionEntities.inProgressTestExecutionId =
-            ExecutionEntities.currentNotTestExecution.id();
+        NewTestExecutionDto newConfigurationExecution =
+            new NewTestExecutionDto(
+                tr.getMethod().getMethodName(),
+                tm.getTestClass().getRealClass().getSimpleName(),
+                tr.getMethod().isBeforeMethodConfiguration() ? "BeforeMethod" : "AfterMethod",
+                tr.getTestClass().getName(),
+                Instant.now(),
+                true,
+                Instant.now(),
+                sessionId,
+                ExecutionEntities.testExecution.id());
+
+        ExecutionEntities.configurationExecution =
+            this.registerNewTestExecution(newConfigurationExecution);
+        ExecutionEntities.inProgressTestExecutionId = ExecutionEntities.configurationExecution.id();
         LOGGER.info(
-            "New configuration method started: {}", ExecutionEntities.currentNotTestExecution.id());
+            "New configuration method started: {}", ExecutionEntities.configurationExecution.id());
       }
     }
   }
@@ -217,11 +224,10 @@ public class TestExecutionListener
   private void methodConfigurationEnd(ITestResult tr, ITestNGMethod tm) {
     if (tm != null) {
       AQATraceIgnore ignore = tm.getClass().getAnnotation(AQATraceIgnore.class);
-      if ((ignore == null || !ignore.value())
-          && ExecutionEntities.currentNotTestExecution != null) {
+      if ((ignore == null || !ignore.value()) && ExecutionEntities.configurationExecution != null) {
         Map<String, Object> values = prepareTestEndParameters(tr);
-        this.endTestExecution(ExecutionEntities.currentNotTestExecution.id(), values);
-        ExecutionEntities.currentNotTestExecution = null;
+        this.endTestExecution(ExecutionEntities.configurationExecution.id(), values);
+        ExecutionEntities.configurationExecution = null;
       }
     }
   }
@@ -294,17 +300,19 @@ public class TestExecutionListener
       } else {
 
         Long retryOf = null;
-        if (ExecutionEntities.testExecution != null
-            && ExecutionEntities.testExecution
+        ExecutionEntities.prevTestExecution = ExecutionEntities.testExecution;
+
+        if (ExecutionEntities.prevTestExecution != null
+            && ExecutionEntities.prevTestExecution
                 .testName()
                 .equals(method.getTestMethod().getMethodName())
             && retryCount > 0) {
           LOGGER.info(
               "Previous test execution: [id {}, name {}]. New: {}",
-              ExecutionEntities.testExecution.id(),
-              ExecutionEntities.testExecution.testName(),
+              ExecutionEntities.prevTestExecution.id(),
+              ExecutionEntities.prevTestExecution.testName(),
               method.getTestMethod().getMethodName());
-          retryOf = ExecutionEntities.testExecution.id();
+          retryOf = ExecutionEntities.prevTestExecution.id();
         }
 
         ExecutionEntities.testExecution =

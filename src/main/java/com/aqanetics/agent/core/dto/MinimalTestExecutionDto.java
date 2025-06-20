@@ -6,5 +6,6 @@ public record MinimalTestExecutionDto(
     Long id,
     String testName,
     Instant startTime,
+    Instant endTime,
     MinimalTestExecutionDto retryOf,
     String sessionId) {}

@@ -31,8 +31,8 @@ public class ArtifactsHelper {
   public static void uploadConfigurationArtifact(File artifact) {
     uploadFile(
         artifact,
-        ExecutionEntities.currentNotTestExecution.id(),
-        ExecutionEntities.currentNotTestExecution.testName(),
+        ExecutionEntities.configurationExecution.id(),
+        ExecutionEntities.configurationExecution.testName(),
         false);
   }
 
@@ -58,8 +58,8 @@ public class ArtifactsHelper {
     if (ENABLED_CONFIGURATION_SCREENSHOT) {
       uploadFile(
           artifact,
-          ExecutionEntities.currentNotTestExecution.id(),
-          ExecutionEntities.currentNotTestExecution.testName(),
+          ExecutionEntities.configurationExecution.id(),
+          ExecutionEntities.configurationExecution.testName(),
           true);
     }
   }
