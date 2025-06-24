@@ -27,7 +27,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,11 +41,9 @@ public class SuiteExecutionListener implements ISuiteListener, IInvokedMethodLis
   private static final String SAVE_PARAMETER_PREFIX =
       AqaConfigLoader.getProperty("aqa-trace.save-parameter-prefix", null);
   private static final boolean FAIL_SUITE_ON_CONF_FAIL =
-      Objects.equals(
-          AqaConfigLoader.getProperty("aqa-trace.fail-suite-on-configuration-failures", "false"),
-          "true");
+      AqaConfigLoader.getBooleanProperty("aqa-trace.fail-suite-on-configuration-failures", false);
   private static final boolean ENABLED_ARTIFACTS =
-      Objects.equals(AqaConfigLoader.getProperty("aqa-trace.artifacts.enabled", "false"), "true");
+      AqaConfigLoader.getBooleanProperty("aqa-trace.artifacts.enabled", false);
 
   public SuiteExecutionListener() {}
 
@@ -88,7 +85,7 @@ public class SuiteExecutionListener implements ISuiteListener, IInvokedMethodLis
     }
 
     OrganizationDto organizationDto =
-        new OrganizationDto(getProperty("aqa-trace.organization", "unknown"));
+        new OrganizationDto(getProperty("aqa-trace.organization-name", "unknown"));
     LOGGER.info(organizationDto.toString());
 
     NewSuiteExecutionDto newSuiteExecution =
@@ -107,8 +104,6 @@ public class SuiteExecutionListener implements ISuiteListener, IInvokedMethodLis
         LOGGER.info(
             "Registered new suite execution with id: {}", ExecutionEntities.suiteExecutionId);
       }
-    } catch (JsonProcessingException e) {
-      throw new RuntimeException(e);
     } catch (Exception e) {
       LOGGER.error("Error parsing suiteExecution: {}", e.getMessage());
     }

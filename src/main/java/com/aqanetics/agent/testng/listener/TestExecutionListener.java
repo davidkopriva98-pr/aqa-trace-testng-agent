@@ -36,6 +36,11 @@ public class TestExecutionListener
   public TestExecutionListener() {}
 
   private MinimalTestExecutionDto registerNewTestExecution(NewTestExecutionDto newTestExecution) {
+    if (ExecutionEntities.suiteExecutionId == null
+        && AqaConfigLoader.getBooleanProperty("aqa-trace.stop-execution-when-unreachable", false)) {
+      return null;
+    }
+
     try {
       String response =
           CrudMethods.sendPost(
@@ -61,6 +66,10 @@ public class TestExecutionListener
 
   private void startTestExecution(
       MinimalTestExecutionDto testExecution, Map<String, Object> values) {
+    if (ExecutionEntities.suiteExecutionId == null
+        && AqaConfigLoader.getBooleanProperty("aqa-trace.stop-execution-when-unreachable", false)) {
+      return;
+    }
     try {
       String response =
           CrudMethods.sendPost(
@@ -84,6 +93,10 @@ public class TestExecutionListener
 
   private MinimalTestExecutionDto endTestExecution(
       Long testExecutionId, Map<String, Object> values) {
+    if (ExecutionEntities.suiteExecutionId == null
+        && AqaConfigLoader.getBooleanProperty("aqa-trace.stop-execution-when-unreachable", false)) {
+      return null;
+    }
     try {
       String response =
           CrudMethods.sendPost(
