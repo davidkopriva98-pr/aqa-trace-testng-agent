@@ -11,6 +11,7 @@ import com.aqanetics.agent.config.AqaConfigLoader;
 import com.aqanetics.agent.core.dto.NewSuiteExecutionDto;
 import com.aqanetics.agent.core.dto.OrganizationDto;
 import com.aqanetics.agent.core.dto.ParameterDto;
+import com.aqanetics.agent.core.exception.AqaAgentException;
 import com.aqanetics.agent.testng.ExecutionEntities;
 import com.aqanetics.agent.utils.CrudMethods;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -27,7 +28,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,11 +42,9 @@ public class SuiteExecutionListener implements ISuiteListener, IInvokedMethodLis
   private static final String SAVE_PARAMETER_PREFIX =
       AqaConfigLoader.getProperty("aqa-trace.save-parameter-prefix", null);
   private static final boolean FAIL_SUITE_ON_CONF_FAIL =
-      Objects.equals(
-          AqaConfigLoader.getProperty("aqa-trace.fail-suite-on-configuration-failures", "false"),
-          "true");
+      AqaConfigLoader.getBooleanProperty("aqa-trace.fail-suite-on-configuration-failures", false);
   private static final boolean ENABLED_ARTIFACTS =
-      Objects.equals(AqaConfigLoader.getProperty("aqa-trace.artifacts.enabled", "false"), "true");
+      AqaConfigLoader.getBooleanProperty("aqa-trace.artifacts.enabled", false);
 
   public SuiteExecutionListener() {}
 
@@ -88,7 +86,7 @@ public class SuiteExecutionListener implements ISuiteListener, IInvokedMethodLis
     }
 
     OrganizationDto organizationDto =
-        new OrganizationDto(getProperty("aqa-trace.organization", "unknown"));
+        new OrganizationDto(getProperty("aqa-trace.organization-name", "unknown"));
     LOGGER.info(organizationDto.toString());
 
     NewSuiteExecutionDto newSuiteExecution =
@@ -107,10 +105,14 @@ public class SuiteExecutionListener implements ISuiteListener, IInvokedMethodLis
         LOGGER.info(
             "Registered new suite execution with id: {}", ExecutionEntities.suiteExecutionId);
       }
+    } catch (AqaAgentException aqaException) {
+      if (aqaException.shouldThrowException()) {
+        LOGGER.error("Error creating new suiteExecution: {}", aqaException.getMessage());
+        throw new RuntimeException(aqaException);
+      }
     } catch (JsonProcessingException e) {
+      LOGGER.error("Error while JSON parsing suiteExecution: {}", e.getMessage());
       throw new RuntimeException(e);
-    } catch (Exception e) {
-      LOGGER.error("Error parsing suiteExecution: {}", e.getMessage());
     }
   }
 
@@ -124,7 +126,13 @@ public class SuiteExecutionListener implements ISuiteListener, IInvokedMethodLis
             "Received updated suiteExecution with id: {}", ExecutionEntities.suiteExecutionId);
       }
 
+    } catch (AqaAgentException aqaException) {
+      if (aqaException.shouldThrowException()) {
+        LOGGER.error("Error updating new suiteExecution: {}", aqaException.getMessage());
+        throw new RuntimeException(aqaException);
+      }
     } catch (JsonProcessingException e) {
+      LOGGER.error("Error while JSON parsing suiteExecution: {}", e.getMessage());
       throw new RuntimeException(e);
     }
   }
@@ -173,8 +181,14 @@ public class SuiteExecutionListener implements ISuiteListener, IInvokedMethodLis
         Files.write(path, xmlSuite.toXml().getBytes());
 
         postExecutionArtifact(url, suiteFile, "suite.xml", false);
+      } catch (AqaAgentException aqaException) {
+        if (aqaException.shouldThrowException()) {
+          LOGGER.error("Error uploading suiteExecution xml file: {}", aqaException.getMessage());
+          throw new RuntimeException(aqaException);
+        }
       } catch (IOException e) {
-        LOGGER.error("Error uploading suite execution", e);
+        LOGGER.error("Error IO operation for xml file: {}", e.getMessage());
+        throw new RuntimeException(e);
       } finally {
         assert suiteFile != null;
         suiteFile.delete();

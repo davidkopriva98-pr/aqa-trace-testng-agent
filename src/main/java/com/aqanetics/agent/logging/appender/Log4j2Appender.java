@@ -2,12 +2,12 @@ package com.aqanetics.agent.logging.appender;
 
 import com.aqanetics.agent.config.AqaConfigLoader;
 import com.aqanetics.agent.core.dto.TestExecutionLogDto;
+import com.aqanetics.agent.core.exception.AqaAgentException;
 import com.aqanetics.agent.testng.ExecutionEntities;
 import com.aqanetics.agent.utils.CrudMethods;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import java.time.Instant;
 import java.util.Arrays;
-import java.util.Objects;
 import java.util.function.Function;
 import org.apache.logging.log4j.core.Appender;
 import org.apache.logging.log4j.core.Layout;
@@ -23,11 +23,11 @@ import org.apache.logging.log4j.core.layout.PatternLayout;
 public class Log4j2Appender extends AbstractAppender {
 
   private static final boolean ENABLED_LOGGING =
-      Objects.equals(AqaConfigLoader.getProperty("aqa-trace.logging.enabled", "false"), "true");
+      AqaConfigLoader.getBooleanProperty("aqa-trace.logging.enabled", false);
   private static final String[] LOGS_ONLY_FROM_PACKAGES =
-      AqaConfigLoader.getProperty("aqa-trace.logging.only-from-package", "").split(",");
+      AqaConfigLoader.getProperty("aqa-trace.logging.include-packages", "").split(",");
   private static final String[] EXCLUDE_LOGS_FROM_PACKAGES =
-      AqaConfigLoader.getProperty("aqa-trace.logging.exclude-from-package", "com.aqanetics.agent")
+      AqaConfigLoader.getProperty("aqa-trace.logging.exclude-packages", "com.aqanetics.agent")
           .split(",");
 
   private static final Function<LogEvent, TestExecutionLogDto> CONVERTER =
@@ -66,6 +66,10 @@ public class Log4j2Appender extends AbstractAppender {
       try {
         CrudMethods.postLog(
             AqaConfigLoader.OBJECT_MAPPER.writeValueAsString(CONVERTER.apply(event)));
+      } catch (AqaAgentException aqaException) {
+        if (aqaException.shouldThrowException()) {
+          throw new RuntimeException(aqaException);
+        }
       } catch (JsonProcessingException e) {
         throw new RuntimeException(e);
       }
