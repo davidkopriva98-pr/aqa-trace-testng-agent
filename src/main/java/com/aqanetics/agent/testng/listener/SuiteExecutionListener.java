@@ -106,7 +106,7 @@ public class SuiteExecutionListener implements ISuiteListener, IInvokedMethodLis
             "Registered new suite execution with id: {}", ExecutionEntities.suiteExecutionId);
       }
     } catch (AqaAgentException aqaException) {
-      if (!aqaException.isIgnoreException()) {
+      if (aqaException.shouldThrowException()) {
         LOGGER.error("Error creating new suiteExecution: {}", aqaException.getMessage());
         throw new RuntimeException(aqaException);
       }
@@ -127,7 +127,7 @@ public class SuiteExecutionListener implements ISuiteListener, IInvokedMethodLis
       }
 
     } catch (AqaAgentException aqaException) {
-      if (!aqaException.isIgnoreException()) {
+      if (aqaException.shouldThrowException()) {
         LOGGER.error("Error updating new suiteExecution: {}", aqaException.getMessage());
         throw new RuntimeException(aqaException);
       }
@@ -182,7 +182,7 @@ public class SuiteExecutionListener implements ISuiteListener, IInvokedMethodLis
 
         postExecutionArtifact(url, suiteFile, "suite.xml", false);
       } catch (AqaAgentException aqaException) {
-        if (!aqaException.isIgnoreException()) {
+        if (aqaException.shouldThrowException()) {
           LOGGER.error("Error uploading suiteExecution xml file: {}", aqaException.getMessage());
           throw new RuntimeException(aqaException);
         }

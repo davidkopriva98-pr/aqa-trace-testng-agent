@@ -11,7 +11,7 @@ public class AqaAgentException extends IOException {
     this.ignoreException = ignoreException;
   }
 
-  public boolean isIgnoreException() {
-    return ignoreException;
+  public boolean shouldThrowException() {
+    return !ignoreException;
   }
 }

@@ -62,7 +62,7 @@ public class TestExecutionListener
         return null;
       }
     } catch (AqaAgentException aqaException) {
-      if (!aqaException.isIgnoreException()) {
+      if (aqaException.shouldThrowException()) {
         LOGGER.error("Error creating new testExecution: {}", aqaException.getMessage());
         throw new RuntimeException(aqaException);
       }
@@ -95,7 +95,7 @@ public class TestExecutionListener
         ExecutionEntities.inProgressTestExecutionId = testExecution.id();
       }
     } catch (AqaAgentException aqaException) {
-      if (!aqaException.isIgnoreException()) {
+      if (aqaException.shouldThrowException()) {
         LOGGER.error("Error updating testExecution: {}", aqaException.getMessage());
         throw new RuntimeException(aqaException);
       }
@@ -130,7 +130,7 @@ public class TestExecutionListener
         return null;
       }
     } catch (AqaAgentException aqaException) {
-      if (!aqaException.isIgnoreException()) {
+      if (aqaException.shouldThrowException()) {
         LOGGER.error("Error stopping testExecution: {}", aqaException.getMessage());
         throw new RuntimeException(aqaException);
       }

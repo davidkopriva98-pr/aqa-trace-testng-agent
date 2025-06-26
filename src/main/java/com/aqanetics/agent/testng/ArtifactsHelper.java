@@ -81,7 +81,7 @@ public class ArtifactsHelper {
       try {
         postExecutionArtifact(url, artifact, artifact.getName(), true);
       } catch (AqaAgentException aqaException) {
-        if (!aqaException.isIgnoreException()) {
+        if (aqaException.shouldThrowException()) {
           LOGGER.error("Error uploading artifact: {}", aqaException.getMessage());
           throw new RuntimeException(aqaException);
         }

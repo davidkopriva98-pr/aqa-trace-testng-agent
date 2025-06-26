@@ -67,7 +67,7 @@ public class Log4j2Appender extends AbstractAppender {
         CrudMethods.postLog(
             AqaConfigLoader.OBJECT_MAPPER.writeValueAsString(CONVERTER.apply(event)));
       } catch (AqaAgentException aqaException) {
-        if (!aqaException.isIgnoreException()) {
+        if (aqaException.shouldThrowException()) {
           throw new RuntimeException(aqaException);
         }
       } catch (JsonProcessingException e) {
