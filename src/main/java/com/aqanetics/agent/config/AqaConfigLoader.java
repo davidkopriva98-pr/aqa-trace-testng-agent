@@ -2,9 +2,8 @@ package com.aqanetics.agent.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.Properties;
+import java.util.List;
+import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -18,7 +17,10 @@ public class AqaConfigLoader {
   public static final ObjectMapper OBJECT_MAPPER =
       (new ObjectMapper()).registerModule(new JavaTimeModule());
   private static final Logger LOGGER = LoggerFactory.getLogger(AqaConfigLoader.class);
-  private static final Properties properties = new Properties();
+
+  private static final List<ConfigSource> configSources =
+      List.of(new EnvironmentConfigSource(), new FileConfigSource("aqa-trace-agent.properties"));
+
   public static String API_ENDPOINT;
   public static boolean ENABLED;
 
@@ -29,22 +31,27 @@ public class AqaConfigLoader {
   public AqaConfigLoader() {}
 
   private static void loadProperties() {
-    try (InputStream input =
-        AqaConfigLoader.class.getClassLoader().getResourceAsStream("aqa-trace-agent.properties")) {
-      if (input != null) {
-        properties.load(input);
-        API_ENDPOINT = properties.getProperty("aqa-trace.server.hostname", null);
-        ENABLED = Boolean.parseBoolean(properties.getProperty("aqa-trace.enabled", "false"));
-        LOGGER.info("Loaded configuration from aqa-agent.properties.");
-      } else {
-        LOGGER.warn("Could not find aqa-agent.properties. Using default values.");
-      }
-    } catch (IOException e) {
-      LOGGER.warn("Failed to load aqa-agent.properties. {}", e.getMessage());
-    }
+
+    API_ENDPOINT = getProperty("aqa-trace.server.hostname", null);
+    ENABLED = getBooleanProperty("aqa-trace.enabled", false);
+    LOGGER.info("Loaded properties.");
+  }
+
+  public static boolean getBooleanProperty(String propertyName, boolean defaultValue) {
+    return Boolean.parseBoolean(getProperty(propertyName, String.valueOf(defaultValue)));
   }
 
   public static String getProperty(String key, String defaultValue) {
-    return properties.getProperty(key, defaultValue);
+    for (ConfigSource source : configSources) {
+      Optional<String> value = source.getProperty(key);
+      if (value.isPresent()) {
+        LOGGER.debug(
+            "Property '{}' found in {}: {}", key, source.getClass().getSimpleName(), value.get());
+        return value.get();
+      }
+    }
+    LOGGER.debug(
+        "Property '{}' not found in any source, using default value: {}", key, defaultValue);
+    return defaultValue;
   }
 }
