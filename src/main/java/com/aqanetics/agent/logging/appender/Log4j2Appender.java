@@ -2,6 +2,7 @@ package com.aqanetics.agent.logging.appender;
 
 import com.aqanetics.agent.config.AqaConfigLoader;
 import com.aqanetics.agent.core.dto.TestExecutionLogDto;
+import com.aqanetics.agent.core.exception.AqaAgentException;
 import com.aqanetics.agent.testng.ExecutionEntities;
 import com.aqanetics.agent.utils.CrudMethods;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -65,6 +66,10 @@ public class Log4j2Appender extends AbstractAppender {
       try {
         CrudMethods.postLog(
             AqaConfigLoader.OBJECT_MAPPER.writeValueAsString(CONVERTER.apply(event)));
+      } catch (AqaAgentException aqaException) {
+        if (!aqaException.isIgnoreException()) {
+          throw new RuntimeException(aqaException);
+        }
       } catch (JsonProcessingException e) {
         throw new RuntimeException(e);
       }

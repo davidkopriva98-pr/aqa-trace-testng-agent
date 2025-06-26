@@ -8,6 +8,7 @@ import static com.aqanetics.agent.config.AqaConfigLoader.TEST_API_ENDPOINT;
 import static com.aqanetics.agent.utils.CrudMethods.postExecutionArtifact;
 
 import com.aqanetics.agent.config.AqaConfigLoader;
+import com.aqanetics.agent.core.exception.AqaAgentException;
 import java.io.File;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -77,7 +78,14 @@ public class ArtifactsHelper {
           errorScreenshot ? "error screenshot" : "artifact",
           artifact.getName(),
           executionName);
-      postExecutionArtifact(url, artifact, artifact.getName(), true);
+      try {
+        postExecutionArtifact(url, artifact, artifact.getName(), true);
+      } catch (AqaAgentException aqaException) {
+        if (!aqaException.isIgnoreException()) {
+          LOGGER.error("Error uploading artifact: {}", aqaException.getMessage());
+          throw new RuntimeException(aqaException);
+        }
+      }
     }
   }
 }

@@ -4,7 +4,7 @@ import static com.aqanetics.agent.config.AqaConfigLoader.AGENT_API_ENDPOINT;
 import static com.aqanetics.agent.config.AqaConfigLoader.SUITE_API_ENDPOINT;
 
 import com.aqanetics.agent.config.AqaConfigLoader;
-import com.aqanetics.agent.core.exception.ArtifactException;
+import com.aqanetics.agent.core.exception.AqaAgentException;
 import com.aqanetics.agent.testng.ExecutionEntities;
 import java.io.File;
 import java.io.IOException;
@@ -29,7 +29,10 @@ public class CrudMethods {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(CrudMethods.class);
 
-  public static String sendPost(URI uri, String postBody) {
+  private static final boolean STOP_WHEN_UNREACHABLE =
+      AqaConfigLoader.getBooleanProperty("aqa-trace.stop-execution-when-unreachable", false);
+
+  public static String sendPost(URI uri, String postBody) throws AqaAgentException {
     if (AqaConfigLoader.ENABLED && AqaConfigLoader.API_ENDPOINT != null) {
       try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
         HttpPost httpPost = new HttpPost(uri);
@@ -41,24 +44,32 @@ public class CrudMethods {
             httpPost,
             response -> {
               int statusCode = response.getCode();
-              LOGGER.debug("API call to '{}' returned code: {}", uri, statusCode);
+              LOGGER.info("API call to '{}' returned code: {}", uri, statusCode);
 
               HttpEntity responseEntity = response.getEntity();
+              String responseBody = null;
               if (responseEntity != null) {
                 try {
-                  return EntityUtils.toString(responseEntity);
+                  responseBody = EntityUtils.toString(responseEntity);
                 } catch (ParseException e) {
                   LOGGER.error(
                       "Failed to parse response entity from '{}': {}", uri, e.getMessage());
-                  return null;
                 }
               }
-              LOGGER.error("Response from '{}' is null", uri);
-              return null;
+              if (statusCode >= 200 && statusCode < 300) {
+                return responseBody;
+              } else {
+                String errorMessage =
+                    String.format(
+                        "API call to '%s' failed with status code %d. Response: %s",
+                        uri, statusCode, responseBody != null ? responseBody : "N/A");
+                LOGGER.error(errorMessage);
+                throw new AqaAgentException(errorMessage, !STOP_WHEN_UNREACHABLE);
+              }
             });
       } catch (IOException e) {
         LOGGER.error("Failed API call to '{}': {}", uri, e.getMessage());
-        return null;
+        throw new AqaAgentException(e.getMessage(), !STOP_WHEN_UNREACHABLE);
       }
     } else {
       LOGGER.info("API endpoint not configured or reporting disabled");
@@ -66,7 +77,8 @@ public class CrudMethods {
     }
   }
 
-  public static String sendSuitePatch(Map<String, Object> updatedParameters) {
+  public static String sendSuitePatch(Map<String, Object> updatedParameters)
+      throws AqaAgentException {
     if (AqaConfigLoader.ENABLED
         && ExecutionEntities.suiteExecutionId != null
         && AqaConfigLoader.API_ENDPOINT != null) {
@@ -92,21 +104,29 @@ public class CrudMethods {
               LOGGER.debug("API call to 'patch' returned code: {}", statusCode);
 
               HttpEntity responseEntity = response.getEntity();
+              String responseBody = null;
               if (responseEntity != null) {
                 try {
-                  return EntityUtils.toString(responseEntity);
+                  responseBody = EntityUtils.toString(responseEntity);
                 } catch (ParseException e) {
                   LOGGER.error(
                       "Failed to parse response entity from patch endpoint: {}", e.getMessage());
-                  return null;
                 }
               }
-              LOGGER.error("Response from 'patch' is null");
-              return null;
+              if (statusCode >= 200 && statusCode < 300) {
+                return responseBody;
+              } else {
+                String errorMessage =
+                    String.format(
+                        "API call failed with status code %d. Response: %s",
+                        statusCode, responseBody != null ? responseBody : "N/A");
+                LOGGER.error(errorMessage);
+                throw new AqaAgentException(errorMessage, !STOP_WHEN_UNREACHABLE);
+              }
             });
       } catch (IOException e) {
         LOGGER.error("Failed API call to patch: {}", e.getMessage());
-        return null;
+        throw new AqaAgentException(e.getMessage(), !STOP_WHEN_UNREACHABLE);
       } catch (Exception e) {
         LOGGER.error("Failed to serialize parameters for PATCH request: {}", e.getMessage());
         return null;
@@ -116,7 +136,7 @@ public class CrudMethods {
     }
   }
 
-  public static void postLog(String postBody) {
+  public static void postLog(String postBody) throws AqaAgentException {
     URI uri =
         URI.create(
             AqaConfigLoader.API_ENDPOINT
@@ -135,12 +155,13 @@ public class CrudMethods {
       client.execute(httpPost, response -> null);
 
     } catch (IOException e) {
-      throw new RuntimeException("Failed to send log POST request", e);
+      throw new AqaAgentException(e.getMessage(), !STOP_WHEN_UNREACHABLE);
     }
   }
 
   public static void postExecutionArtifact(
-      String url, File artifact, String fileName, boolean ofTestExecution) {
+      String url, File artifact, String fileName, boolean ofTestExecution)
+      throws AqaAgentException {
     if (AqaConfigLoader.API_ENDPOINT != null
         && ((ofTestExecution && ExecutionEntities.testExecution != null)
             || (!ofTestExecution && ExecutionEntities.suiteExecutionId != null))) {
@@ -154,9 +175,15 @@ public class CrudMethods {
         Integer responseCode =
             httpClient.execute(httpPost, org.apache.hc.core5.http.HttpResponse::getCode);
         LOGGER.info("Response Code: {}", responseCode);
+        if (responseCode >= 300) {
+          String errorMessage =
+              String.format("API call to post log failed with status code %d", responseCode);
+          LOGGER.error(errorMessage);
+          throw new AqaAgentException(errorMessage, !STOP_WHEN_UNREACHABLE);
+        }
       } catch (IOException e) {
         LOGGER.info("Failed to upload artifact: {}", e.getMessage());
-        throw new ArtifactException(e.getMessage());
+        throw new AqaAgentException(e.getMessage(), !STOP_WHEN_UNREACHABLE);
       }
     }
   }

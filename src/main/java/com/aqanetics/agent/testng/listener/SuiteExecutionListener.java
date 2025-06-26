@@ -11,6 +11,7 @@ import com.aqanetics.agent.config.AqaConfigLoader;
 import com.aqanetics.agent.core.dto.NewSuiteExecutionDto;
 import com.aqanetics.agent.core.dto.OrganizationDto;
 import com.aqanetics.agent.core.dto.ParameterDto;
+import com.aqanetics.agent.core.exception.AqaAgentException;
 import com.aqanetics.agent.testng.ExecutionEntities;
 import com.aqanetics.agent.utils.CrudMethods;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -104,8 +105,14 @@ public class SuiteExecutionListener implements ISuiteListener, IInvokedMethodLis
         LOGGER.info(
             "Registered new suite execution with id: {}", ExecutionEntities.suiteExecutionId);
       }
-    } catch (Exception e) {
-      LOGGER.error("Error parsing suiteExecution: {}", e.getMessage());
+    } catch (AqaAgentException aqaException) {
+      if (!aqaException.isIgnoreException()) {
+        LOGGER.error("Error creating new suiteExecution: {}", aqaException.getMessage());
+        throw new RuntimeException(aqaException);
+      }
+    } catch (JsonProcessingException e) {
+      LOGGER.error("Error while JSON parsing suiteExecution: {}", e.getMessage());
+      throw new RuntimeException(e);
     }
   }
 
@@ -119,7 +126,13 @@ public class SuiteExecutionListener implements ISuiteListener, IInvokedMethodLis
             "Received updated suiteExecution with id: {}", ExecutionEntities.suiteExecutionId);
       }
 
+    } catch (AqaAgentException aqaException) {
+      if (!aqaException.isIgnoreException()) {
+        LOGGER.error("Error updating new suiteExecution: {}", aqaException.getMessage());
+        throw new RuntimeException(aqaException);
+      }
     } catch (JsonProcessingException e) {
+      LOGGER.error("Error while JSON parsing suiteExecution: {}", e.getMessage());
       throw new RuntimeException(e);
     }
   }
@@ -168,8 +181,14 @@ public class SuiteExecutionListener implements ISuiteListener, IInvokedMethodLis
         Files.write(path, xmlSuite.toXml().getBytes());
 
         postExecutionArtifact(url, suiteFile, "suite.xml", false);
+      } catch (AqaAgentException aqaException) {
+        if (!aqaException.isIgnoreException()) {
+          LOGGER.error("Error uploading suiteExecution xml file: {}", aqaException.getMessage());
+          throw new RuntimeException(aqaException);
+        }
       } catch (IOException e) {
-        LOGGER.error("Error uploading suite execution", e);
+        LOGGER.error("Error IO operation for xml file: {}", e.getMessage());
+        throw new RuntimeException(e);
       } finally {
         assert suiteFile != null;
         suiteFile.delete();

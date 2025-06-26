@@ -8,9 +8,11 @@ import com.aqanetics.agent.config.AqaConfigLoader;
 import com.aqanetics.agent.core.dto.MinimalTestExecutionDto;
 import com.aqanetics.agent.core.dto.NewTestExecutionDto;
 import com.aqanetics.agent.core.dto.TestExecutionLogDto;
+import com.aqanetics.agent.core.exception.AqaAgentException;
 import com.aqanetics.agent.testng.ExecutionEntities;
 import com.aqanetics.agent.utils.AQATraceIgnore;
 import com.aqanetics.agent.utils.CrudMethods;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.net.URI;
@@ -32,12 +34,13 @@ public class TestExecutionListener
     implements ITestListener, IInvokedMethodListener, IConfigurationListener {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(TestExecutionListener.class);
+  private static final boolean STOP_WHEN_UNREACHABLE =
+      AqaConfigLoader.getBooleanProperty("aqa-trace.stop-execution-when-unreachable", false);
 
   public TestExecutionListener() {}
 
   private MinimalTestExecutionDto registerNewTestExecution(NewTestExecutionDto newTestExecution) {
-    if (ExecutionEntities.suiteExecutionId == null
-        && AqaConfigLoader.getBooleanProperty("aqa-trace.stop-execution-when-unreachable", false)) {
+    if (ExecutionEntities.suiteExecutionId == null && STOP_WHEN_UNREACHABLE) {
       return null;
     }
 
@@ -58,16 +61,21 @@ public class TestExecutionListener
       } else {
         return null;
       }
-    } catch (Exception e) {
-      LOGGER.error("Error posting new testExecution: {}", e.getMessage());
+    } catch (AqaAgentException aqaException) {
+      if (!aqaException.isIgnoreException()) {
+        LOGGER.error("Error creating new testExecution: {}", aqaException.getMessage());
+        throw new RuntimeException(aqaException);
+      }
       return null;
+    } catch (JsonProcessingException e) {
+      LOGGER.error("Error while JSON parsing suiteExecution: {}", e.getMessage());
+      throw new RuntimeException(e);
     }
   }
 
   private void startTestExecution(
       MinimalTestExecutionDto testExecution, Map<String, Object> values) {
-    if (ExecutionEntities.suiteExecutionId == null
-        && AqaConfigLoader.getBooleanProperty("aqa-trace.stop-execution-when-unreachable", false)) {
+    if (ExecutionEntities.suiteExecutionId == null && STOP_WHEN_UNREACHABLE) {
       return;
     }
     try {
@@ -86,15 +94,20 @@ public class TestExecutionListener
         LOGGER.info("testExecution {} started.", testExecution.id());
         ExecutionEntities.inProgressTestExecutionId = testExecution.id();
       }
-    } catch (Exception e) {
-      LOGGER.error("Error posting start testExecution: {}", e.getMessage());
+    } catch (AqaAgentException aqaException) {
+      if (!aqaException.isIgnoreException()) {
+        LOGGER.error("Error updating testExecution: {}", aqaException.getMessage());
+        throw new RuntimeException(aqaException);
+      }
+    } catch (JsonProcessingException e) {
+      LOGGER.error("Error while JSON parsing suiteExecution: {}", e.getMessage());
+      throw new RuntimeException(e);
     }
   }
 
   private MinimalTestExecutionDto endTestExecution(
       Long testExecutionId, Map<String, Object> values) {
-    if (ExecutionEntities.suiteExecutionId == null
-        && AqaConfigLoader.getBooleanProperty("aqa-trace.stop-execution-when-unreachable", false)) {
+    if (ExecutionEntities.suiteExecutionId == null && STOP_WHEN_UNREACHABLE) {
       return null;
     }
     try {
@@ -116,9 +129,15 @@ public class TestExecutionListener
       } else {
         return null;
       }
-    } catch (Exception e) {
-      LOGGER.error("Error posting end testExecution: {}", e.getMessage());
+    } catch (AqaAgentException aqaException) {
+      if (!aqaException.isIgnoreException()) {
+        LOGGER.error("Error stopping testExecution: {}", aqaException.getMessage());
+        throw new RuntimeException(aqaException);
+      }
       return null;
+    } catch (JsonProcessingException e) {
+      LOGGER.error("Error while JSON parsing suiteExecution: {}", e.getMessage());
+      throw new RuntimeException(e);
     }
   }
 
@@ -190,28 +209,35 @@ public class TestExecutionListener
                       ExecutionEntities.prevTestExecution != null
                           ? ExecutionEntities.prevTestExecution.id()
                           : null));
-          LOGGER.info(
-              "Test execution {} was missing for current configuration method",
-              ExecutionEntities.testExecution.id());
+          if (ExecutionEntities.testExecution != null) {
+            LOGGER.info(
+                "Test execution {} was missing for current configuration method",
+                ExecutionEntities.testExecution.id());
+          }
         }
 
-        NewTestExecutionDto newConfigurationExecution =
-            new NewTestExecutionDto(
-                tr.getMethod().getMethodName(),
-                tm.getTestClass().getRealClass().getSimpleName(),
-                tr.getMethod().isBeforeMethodConfiguration() ? "BeforeMethod" : "AfterMethod",
-                tr.getTestClass().getName(),
-                Instant.now(),
-                true,
-                Instant.now(),
-                sessionId,
-                ExecutionEntities.testExecution.id());
+        if (ExecutionEntities.testExecution != null) {
 
-        ExecutionEntities.configurationExecution =
-            this.registerNewTestExecution(newConfigurationExecution);
-        ExecutionEntities.inProgressTestExecutionId = ExecutionEntities.configurationExecution.id();
-        LOGGER.info(
-            "New configuration method started: {}", ExecutionEntities.configurationExecution.id());
+          NewTestExecutionDto newConfigurationExecution =
+              new NewTestExecutionDto(
+                  tr.getMethod().getMethodName(),
+                  tm.getTestClass().getRealClass().getSimpleName(),
+                  tr.getMethod().isBeforeMethodConfiguration() ? "BeforeMethod" : "AfterMethod",
+                  tr.getTestClass().getName(),
+                  Instant.now(),
+                  true,
+                  Instant.now(),
+                  sessionId,
+                  ExecutionEntities.testExecution.id());
+
+          ExecutionEntities.configurationExecution =
+              this.registerNewTestExecution(newConfigurationExecution);
+          ExecutionEntities.inProgressTestExecutionId =
+              ExecutionEntities.configurationExecution.id();
+          LOGGER.info(
+              "New configuration method started: {}",
+              ExecutionEntities.configurationExecution.id());
+        }
       }
     }
   }
