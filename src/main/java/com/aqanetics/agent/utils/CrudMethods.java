@@ -44,7 +44,7 @@ public class CrudMethods {
             httpPost,
             response -> {
               int statusCode = response.getCode();
-              LOGGER.info("API call to '{}' returned code: {}", uri, statusCode);
+              LOGGER.debug("API call to '{}' returned code: {}", uri, statusCode);
 
               HttpEntity responseEntity = response.getEntity();
               String responseBody = null;
