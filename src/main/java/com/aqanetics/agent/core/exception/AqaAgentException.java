@@ -1,8 +1,17 @@
 package com.aqanetics.agent.core.exception;
 
-public class AqaAgentException extends RuntimeException {
+import java.io.IOException;
 
-  public AqaAgentException(String message) {
+public class AqaAgentException extends IOException {
+
+  private final boolean ignoreException;
+
+  public AqaAgentException(String message, boolean ignoreException) {
     super(message);
+    this.ignoreException = ignoreException;
+  }
+
+  public boolean isIgnoreException() {
+    return ignoreException;
   }
 }
