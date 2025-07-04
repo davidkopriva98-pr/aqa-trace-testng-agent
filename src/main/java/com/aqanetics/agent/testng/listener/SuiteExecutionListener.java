@@ -9,11 +9,12 @@ import static com.aqanetics.agent.utils.CrudMethods.postExecutionArtifact;
 
 import com.aqanetics.agent.config.AqaConfigLoader;
 import com.aqanetics.agent.core.dto.NewSuiteExecutionDto;
-import com.aqanetics.agent.core.dto.OrganizationDto;
-import com.aqanetics.agent.core.dto.ParameterDto;
 import com.aqanetics.agent.core.exception.AqaAgentException;
 import com.aqanetics.agent.testng.ExecutionEntities;
 import com.aqanetics.agent.utils.CrudMethods;
+import com.aqanetics.dto.basic.BasicSuiteExecutionParameterDto;
+import com.aqanetics.dto.normal.OrganizationDto;
+import com.aqanetics.enums.ExecutionStatus;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import java.io.File;
@@ -67,7 +68,7 @@ public class SuiteExecutionListener implements ISuiteListener, IInvokedMethodLis
    * @param suite testNG suite entity
    */
   private void registerNewSuiteExecution(ISuite suite, String hostName) {
-    List<ParameterDto> parameters = new ArrayList<>();
+    List<BasicSuiteExecutionParameterDto> parameters = new ArrayList<>();
     if (SAVE_PARAMETER_PREFIX != null) {
       Map<String, String> allParameters = suite.getXmlSuite().getAllParameters();
       List<String> keys =
@@ -80,17 +81,18 @@ public class SuiteExecutionListener implements ISuiteListener, IInvokedMethodLis
             String valueText = values[0];
             Long valueNumeric = Long.valueOf(values[1]);
             parameters.add(
-                new ParameterDto(
-                    key.replace(SAVE_PARAMETER_PREFIX + "_", ""), valueNumeric, valueText));
+                new BasicSuiteExecutionParameterDto(
+                    null, key.replace(SAVE_PARAMETER_PREFIX + "_", ""), valueNumeric, valueText));
           });
     }
 
     OrganizationDto organizationDto =
-        new OrganizationDto(getProperty("aqa-trace.organization-name", "unknown"));
+        new OrganizationDto(null, getProperty("aqa-trace.organization-name", "unknown"));
     LOGGER.info(organizationDto.toString());
 
     NewSuiteExecutionDto newSuiteExecution =
-        new NewSuiteExecutionDto(Instant.now(), true, parameters, organizationDto, hostName);
+        new NewSuiteExecutionDto(
+            Instant.now(), parameters, organizationDto, hostName, ExecutionStatus.IN_PROGRESS);
 
     LOGGER.info("Posting new suite execution {}", newSuiteExecution);
 
@@ -143,7 +145,6 @@ public class SuiteExecutionListener implements ISuiteListener, IInvokedMethodLis
       LOGGER.info("SuiteExecution with id: {} is finished.", ExecutionEntities.suiteExecutionId);
       Map<String, Object> jsonPayload = new HashMap<>();
       jsonPayload.put("endTime", Instant.now().toString());
-      jsonPayload.put("inProgress", false);
       boolean allPassed =
           suite.getResults().values().stream()
               .allMatch(
