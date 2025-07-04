@@ -7,34 +7,10 @@
   <build>
     <plugins>
       <plugin>
-        <artifactId>maven-enforcer-plugin</artifactId>
-        <configuration>
-          <fail>true</fail>
-          <failFast>true</failFast>
-          <rules>
-            <requireJavaVersion>
-              <version>21.0.x</version>
-            </requireJavaVersion>
-            <requireMavenVersion>
-              <version>[3.9.9,)</version>
-            </requireMavenVersion>
-          </rules>
-        </configuration>
-        <executions>
-          <execution>
-            <goals>
-              <goal>enforce</goal>
-            </goals>
-          </execution>
-        </executions>
-        <groupId>org.apache.maven.plugins</groupId>
-        <version>3.5.0</version>
-      </plugin>
-      <plugin>
         <artifactId>maven-compiler-plugin</artifactId>
         <configuration>
-          <source>16</source>
-          <target>16</target>
+          <source>17</source>
+          <target>17</target>
         </configuration>
         <groupId>org.apache.maven.plugins</groupId>
         <version>3.14.0</version>
@@ -111,7 +87,35 @@
         <version>0.6.0</version>
       </plugin>
       <plugin>
+        <artifactId>maven-enforcer-plugin</artifactId>
+        <configuration>
+          <fail>true</fail>
+          <failFast>true</failFast>
+          <rules>
+            <requireJavaVersion>
+              <!--<version>21.0.x</version>-->
+              <version>17.0.x</version>
+            </requireJavaVersion>
+            <requireMavenVersion>
+              <version>[3.9.9,)</version>
+            </requireMavenVersion>
+          </rules>
+        </configuration>
+        <executions>
+          <execution>
+            <goals>
+              <goal>enforce</goal>
+            </goals>
+          </execution>
+        </executions>
+        <groupId>org.apache.maven.plugins</groupId>
+        <version>3.5.0</version>
+      </plugin>
+      <plugin>
         <artifactId>fmt-maven-plugin</artifactId>
+        <configuration>
+          <filesNamePattern>.*\.java</filesNamePattern>
+        </configuration>
         <executions>
           <execution>
             <goals>
@@ -168,6 +172,11 @@
       <groupId>org.apache.logging.log4j</groupId>
       <version>2.24.3</version>
     </dependency>
+    <dependency>
+      <artifactId>aqa-trace-dto</artifactId>
+      <groupId>com.aqanetics</groupId>
+      <version>1.0.0-SNAPSHOT</version>
+    </dependency>
   </dependencies>
   <description>TestNG agent for AQA Trace</description>
 
@@ -203,8 +212,8 @@
   </organization>
   <packaging>jar</packaging>
   <properties>
-    <maven.compiler.source>21</maven.compiler.source>
-    <maven.compiler.target>21</maven.compiler.target>
+    <maven.compiler.source>17</maven.compiler.source>
+    <maven.compiler.target>17</maven.compiler.target>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
   </properties>
   <scm>
