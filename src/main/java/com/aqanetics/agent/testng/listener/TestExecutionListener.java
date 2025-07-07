@@ -5,13 +5,15 @@ import static com.aqanetics.agent.config.AqaConfigLoader.SUITE_API_ENDPOINT;
 import static com.aqanetics.agent.config.AqaConfigLoader.TEST_API_ENDPOINT;
 
 import com.aqanetics.agent.config.AqaConfigLoader;
-import com.aqanetics.agent.core.dto.MinimalTestExecutionDto;
-import com.aqanetics.agent.core.dto.NewTestExecutionDto;
-import com.aqanetics.agent.core.dto.TestExecutionLogDto;
 import com.aqanetics.agent.core.exception.AqaAgentException;
 import com.aqanetics.agent.testng.ExecutionEntities;
 import com.aqanetics.agent.utils.AQATraceIgnore;
 import com.aqanetics.agent.utils.CrudMethods;
+import com.aqanetics.dto.create.NewTestExecutionDto;
+import com.aqanetics.dto.minimal.MinimalTestExecutionDto;
+import com.aqanetics.dto.normal.TestExecutionLogDto;
+import com.aqanetics.enums.ExecutionStatus;
+import com.aqanetics.enums.TestExecutionType;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -200,15 +202,17 @@ public class TestExecutionListener
                   new NewTestExecutionDto(
                       tm.getMethodName(),
                       tm.getTestClass().getRealClass().getSimpleName(),
-                      "Test",
-                      "SKIPPED",
+                      TestExecutionType.TEST,
+                      ExecutionStatus.SKIPPED,
                       tr.getTestClass().getName(),
                       Instant.now(),
-                      false,
-                      sessionId,
+                      null,
+                      null,
                       ExecutionEntities.prevTestExecution != null
                           ? ExecutionEntities.prevTestExecution.id()
-                          : null));
+                          : null,
+                      null,
+                      sessionId));
           if (ExecutionEntities.testExecution != null) {
             LOGGER.info(
                 "Test execution {} was missing for current configuration method",
@@ -222,13 +226,17 @@ public class TestExecutionListener
               new NewTestExecutionDto(
                   tr.getMethod().getMethodName(),
                   tm.getTestClass().getRealClass().getSimpleName(),
-                  tr.getMethod().isBeforeMethodConfiguration() ? "BeforeMethod" : "AfterMethod",
+                  tr.getMethod().isBeforeMethodConfiguration()
+                      ? TestExecutionType.BEFORE_METHOD
+                      : TestExecutionType.AFTER_METHOD,
+                  ExecutionStatus.IN_PROGRESS,
                   tr.getTestClass().getName(),
                   Instant.now(),
-                  true,
                   Instant.now(),
-                  sessionId,
-                  ExecutionEntities.testExecution.id());
+                  null,
+                  null,
+                  ExecutionEntities.testExecution.id(),
+                  sessionId);
 
           ExecutionEntities.configurationExecution =
               this.registerNewTestExecution(newConfigurationExecution);
@@ -288,7 +296,10 @@ public class TestExecutionListener
         CrudMethods.postLog(
             AqaConfigLoader.OBJECT_MAPPER.writeValueAsString(
                 new TestExecutionLogDto(
-                    stackTrace, "ERROR", Instant.ofEpochMilli(tr.getEndMillis()))));
+                    ExecutionEntities.inProgressTestExecutionId,
+                    stackTrace,
+                    "ERROR",
+                    Instant.ofEpochMilli(tr.getEndMillis()))));
       } catch (Exception e) {
         LOGGER.error("Error posting error log: {}", e.getMessage());
       }
@@ -296,12 +307,12 @@ public class TestExecutionListener
     return values;
   }
 
-  private String convertIStatusToString(int status) {
+  private ExecutionStatus convertIStatusToString(int status) {
     return switch (status) {
-      case 1 -> "PASSED";
-      case 2 -> "FAILED";
-      case 3 -> "SKIPPED";
-      default -> "UNKNOWN";
+      case 1 -> ExecutionStatus.PASSED;
+      case 2 -> ExecutionStatus.FAILED;
+      case 3 -> ExecutionStatus.SKIPPED;
+      default -> ExecutionStatus.UNKNOWN;
     };
   }
 
@@ -326,9 +337,9 @@ public class TestExecutionListener
         Map<String, Object> values =
             new HashMap<>(
                 Map.ofEntries(
-                    Map.entry("startTime", Instant.now().toString()),
-                    Map.entry("status", "null"),
-                    Map.entry("sessionId", context.getAttribute("sessionId"))));
+                    Map.entry("status", ExecutionStatus.IN_PROGRESS),
+                    Map.entry("sessionId", context.getAttribute("sessionId")),
+                    Map.entry("startTime", Instant.now().toString())));
         if (retryCount > 0) {
           values.put("retryCount", retryCount);
         }
@@ -359,13 +370,14 @@ public class TestExecutionListener
                 new NewTestExecutionDto(
                     method.getTestMethod().getMethodName(),
                     method.getTestMethod().getTestClass().getRealClass().getSimpleName(),
-                    "Test",
+                    TestExecutionType.TEST,
+                    ExecutionStatus.IN_PROGRESS,
                     method.getTestMethod().getTestClass().getName(),
                     Instant.ofEpochMilli(method.getDate()),
-                    true,
-                    Instant.now(),
+                    Instant.ofEpochMilli(method.getDate()),
                     method.getTestMethod().getCurrentInvocationCount(),
                     retryOf,
+                    null,
                     context.getAttribute("sessionId").toString()));
         ExecutionEntities.inProgressTestExecutionId = ExecutionEntities.testExecution.id();
         LOGGER.info(

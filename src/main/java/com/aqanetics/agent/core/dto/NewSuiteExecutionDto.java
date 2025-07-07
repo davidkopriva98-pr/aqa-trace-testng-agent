@@ -1,23 +1,14 @@
 package com.aqanetics.agent.core.dto;
 
+import com.aqanetics.dto.basic.BasicSuiteExecutionParameterDto;
+import com.aqanetics.dto.normal.OrganizationDto;
+import com.aqanetics.enums.ExecutionStatus;
 import java.time.Instant;
 import java.util.List;
-import java.util.stream.Collectors;
 
 public record NewSuiteExecutionDto(
     Instant startTime,
-    Boolean inProgress,
-    List<ParameterDto> parameters,
+    List<BasicSuiteExecutionParameterDto> parameters,
     OrganizationDto organization,
-    String hostName) {
-
-  @Override
-  public String toString() {
-    return String.format(
-        "NewSuiteExecution{%s, %s, [%d, %s]}",
-        startTime.toString(),
-        inProgress,
-        parameters.size(),
-        parameters.stream().map(ParameterDto::type).collect(Collectors.joining(",")));
-  }
-}
+    String hostName,
+    ExecutionStatus status) {}

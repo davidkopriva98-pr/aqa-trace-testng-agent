@@ -1,10 +1,10 @@
 package com.aqanetics.agent.logging.appender;
 
 import com.aqanetics.agent.config.AqaConfigLoader;
-import com.aqanetics.agent.core.dto.TestExecutionLogDto;
 import com.aqanetics.agent.core.exception.AqaAgentException;
 import com.aqanetics.agent.testng.ExecutionEntities;
 import com.aqanetics.agent.utils.CrudMethods;
+import com.aqanetics.dto.normal.TestExecutionLogDto;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import java.time.Instant;
 import java.util.Arrays;
@@ -33,6 +33,7 @@ public class Log4j2Appender extends AbstractAppender {
   private static final Function<LogEvent, TestExecutionLogDto> CONVERTER =
       (e) ->
           new TestExecutionLogDto(
+              ExecutionEntities.inProgressTestExecutionId,
               e.getMessage().getFormattedMessage(),
               e.getLevel().toString(),
               Instant.ofEpochMilli(e.getInstant().getEpochMillisecond()));
