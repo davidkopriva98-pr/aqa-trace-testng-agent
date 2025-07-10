@@ -17,6 +17,7 @@ import com.aqanetics.dto.normal.OrganizationDto;
 import com.aqanetics.enums.ExecutionStatus;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.File;
 import java.io.IOException;
 import java.net.InetAddress;
@@ -41,7 +42,7 @@ public class SuiteExecutionListener implements ISuiteListener, IInvokedMethodLis
 
   private static final Logger LOGGER = LoggerFactory.getLogger(SuiteExecutionListener.class);
   private static final String SAVE_PARAMETER_PREFIX =
-      AqaConfigLoader.getProperty("aqa-trace.save-parameter-prefix", null);
+      AqaConfigLoader.getProperty("aqa-trace.save-parameter-prefix", "AQA");
   private static final boolean FAIL_SUITE_ON_CONF_FAIL =
       AqaConfigLoader.getBooleanProperty("aqa-trace.fail-suite-on-configuration-failures", false);
   private static final boolean ENABLED_ARTIFACTS =
@@ -73,16 +74,34 @@ public class SuiteExecutionListener implements ISuiteListener, IInvokedMethodLis
       Map<String, String> allParameters = suite.getXmlSuite().getAllParameters();
       List<String> keys =
           allParameters.keySet().stream()
-              .filter((key) -> key.toLowerCase().startsWith(SAVE_PARAMETER_PREFIX.toLowerCase()))
+              .filter((key) -> key.toUpperCase().startsWith(SAVE_PARAMETER_PREFIX.toUpperCase()))
               .toList();
       keys.forEach(
           (key) -> {
-            String[] values = allParameters.get(key).split(";");
-            String valueText = values[0];
-            Long valueNumeric = Long.valueOf(values[1]);
-            parameters.add(
-                new BasicSuiteExecutionParameterDto(
-                    null, key.replace(SAVE_PARAMETER_PREFIX + "_", ""), valueNumeric, valueText));
+            ObjectMapper mapper = new ObjectMapper();
+            try {
+              Map<String, Object> parameter = mapper.readValue(allParameters.get(key), Map.class);
+
+              Long number = null;
+              String value = null;
+
+              if (parameter.containsKey("number")) {
+                number = Long.valueOf(parameter.get("number").toString());
+              }
+              if (parameter.containsKey("value")) {
+                value = parameter.get("value").toString();
+              }
+
+              parameters.add(
+                  new BasicSuiteExecutionParameterDto(
+                      null,
+                      key.toUpperCase().replace(SAVE_PARAMETER_PREFIX.toUpperCase() + "_", ""),
+                      number,
+                      value));
+            } catch (JsonProcessingException e) {
+              LOGGER.warn("Failed to parse parameter {}", allParameters.get(key));
+              LOGGER.warn(e.getMessage());
+            }
           });
     }
 
