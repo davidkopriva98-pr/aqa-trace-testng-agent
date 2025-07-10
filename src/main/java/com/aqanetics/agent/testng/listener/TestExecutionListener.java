@@ -171,7 +171,8 @@ public class TestExecutionListener
   }
 
   private void testEnded(ITestResult result) {
-    AQATraceIgnore ignore = result.getTestClass().getClass().getAnnotation(AQATraceIgnore.class);
+    AQATraceIgnore ignore =
+        result.getMethod().getConstructorOrMethod().getMethod().getAnnotation(AQATraceIgnore.class);
     if (ignore == null || !ignore.value()) {
       Map<String, Object> values = prepareTestEndParameters(result);
       Long testId = ExecutionEntities.testExecution.id();
@@ -322,7 +323,12 @@ public class TestExecutionListener
     IInvokedMethodListener.super.beforeInvocation(method, testResult, context);
 
     /*For non-test methods see TestExecutionListener.beforeConfiguration() */
-    AQATraceIgnore ignore = method.getTestMethod().getClass().getAnnotation(AQATraceIgnore.class);
+    AQATraceIgnore ignore =
+        method
+            .getTestMethod()
+            .getConstructorOrMethod()
+            .getMethod()
+            .getAnnotation(AQATraceIgnore.class);
     if (method.isTestMethod() && (ignore == null || !ignore.value())) {
       int retryCount = method.getTestMethod().getCurrentInvocationCount();
 
