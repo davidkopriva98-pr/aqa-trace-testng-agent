@@ -185,7 +185,7 @@
       <email>david.koprivec@paurus.si</email>
       <id>davidkopriva98-pr</id>
       <name>David Koprivec</name>
-      <organization>Paurus R</organization>
+      <organization>AQAnetics</organization>
       <roles>
         <role>Fullstack developer</role>
       </roles>
@@ -207,7 +207,7 @@
   <name>AQA Trace TestNG Agent</name>
 
   <organization>
-    <name>Paurus R</name>
+    <name>AQAnetics</name>
     <url>https://aquanetics.com</url>
   </organization>
   <packaging>jar</packaging>
