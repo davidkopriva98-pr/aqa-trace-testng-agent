@@ -19,22 +19,20 @@ public class AqaConfigLoader {
   private static final Logger LOGGER = LoggerFactory.getLogger(AqaConfigLoader.class);
 
   private static final List<ConfigSource> configSources =
-      List.of(new EnvironmentConfigSource(), new FileConfigSource("aqa-trace-agent.properties"));
+      List.of(
+          new SystemConfigSource(),
+          new EnvironmentConfigSource(),
+          new FileConfigSource("aqa-trace-agent.properties"));
 
   public static String API_ENDPOINT;
   public static boolean ENABLED;
 
-  static {
-    loadProperties();
-  }
-
   public AqaConfigLoader() {}
 
-  private static void loadProperties() {
-
+  public static void loadProperties() {
     API_ENDPOINT = getProperty("aqa-trace.server.hostname", null);
     ENABLED = getBooleanProperty("aqa-trace.enabled", false);
-    LOGGER.info("Loaded properties.");
+    LOGGER.debug("Loaded properties.");
   }
 
   public static boolean getBooleanProperty(String propertyName, boolean defaultValue) {

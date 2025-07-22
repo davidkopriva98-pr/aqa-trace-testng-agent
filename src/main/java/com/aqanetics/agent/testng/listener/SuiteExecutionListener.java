@@ -48,6 +48,10 @@ public class SuiteExecutionListener implements ISuiteListener, IInvokedMethodLis
   private static final boolean ENABLED_ARTIFACTS =
       AqaConfigLoader.getBooleanProperty("aqa-trace.artifacts.enabled", false);
 
+  static {
+    AqaConfigLoader.loadProperties();
+  }
+
   public SuiteExecutionListener() {}
 
   @Override
@@ -58,7 +62,7 @@ public class SuiteExecutionListener implements ISuiteListener, IInvokedMethodLis
     } catch (UnknownHostException e) {
       // Do nothing
     }
-    LOGGER.info("Suite '{}' is starting (on host {})...", suite.getName(), hostName);
+    LOGGER.debug("Suite '{}' is starting (on host {})...", suite.getName(), hostName);
     this.registerNewSuiteExecution(suite, hostName);
   }
 
@@ -99,21 +103,20 @@ public class SuiteExecutionListener implements ISuiteListener, IInvokedMethodLis
                       number,
                       value));
             } catch (JsonProcessingException e) {
-              LOGGER.warn("Failed to parse parameter {}", allParameters.get(key));
-              LOGGER.warn(e.getMessage());
+              LOGGER.warn(
+                  "Failed to parse parameter {} {}", allParameters.get(key), e.getMessage());
             }
           });
     }
 
     OrganizationDto organizationDto =
         new OrganizationDto(null, getProperty("aqa-trace.organization-name", "unknown"));
-    LOGGER.info(organizationDto.toString());
 
     NewSuiteExecutionDto newSuiteExecution =
         new NewSuiteExecutionDto(
             Instant.now(), parameters, organizationDto, hostName, ExecutionStatus.IN_PROGRESS);
 
-    LOGGER.info("Posting new suite execution {}", newSuiteExecution);
+    LOGGER.debug("Posting new suite execution {}", newSuiteExecution);
 
     try {
       String response =
@@ -123,7 +126,7 @@ public class SuiteExecutionListener implements ISuiteListener, IInvokedMethodLis
       if (response != null) {
         JsonNode rootNode = AqaConfigLoader.OBJECT_MAPPER.readTree(response);
         ExecutionEntities.suiteExecutionId = rootNode.get("id").asLong();
-        LOGGER.info(
+        LOGGER.debug(
             "Registered new suite execution with id: {}", ExecutionEntities.suiteExecutionId);
       }
     } catch (AqaAgentException aqaException) {
@@ -161,7 +164,7 @@ public class SuiteExecutionListener implements ISuiteListener, IInvokedMethodLis
   public void onFinish(ISuite suite) {
     if (ExecutionEntities.suiteExecutionId != null) {
       uploadXmlSuiteFile(suite.getXmlSuite());
-      LOGGER.info("SuiteExecution with id: {} is finished.", ExecutionEntities.suiteExecutionId);
+      LOGGER.debug("SuiteExecution with id: {} is finished.", ExecutionEntities.suiteExecutionId);
       Map<String, Object> jsonPayload = new HashMap<>();
       jsonPayload.put("endTime", Instant.now().toString());
       boolean allPassed =
@@ -181,7 +184,7 @@ public class SuiteExecutionListener implements ISuiteListener, IInvokedMethodLis
   }
 
   private void uploadXmlSuiteFile(XmlSuite xmlSuite) {
-    LOGGER.info("Uploading XML suite file {} - {}", xmlSuite.getName(), ENABLED_ARTIFACTS);
+    LOGGER.debug("Uploading XML suite file {} - {}", xmlSuite.getName(), ENABLED_ARTIFACTS);
     if (ENABLED_ARTIFACTS) {
       String url =
           API_ENDPOINT
@@ -189,7 +192,7 @@ public class SuiteExecutionListener implements ISuiteListener, IInvokedMethodLis
               + SUITE_API_ENDPOINT
               + ExecutionEntities.suiteExecutionId
               + ARTIFACTS_ENDPOINT;
-      LOGGER.info(
+      LOGGER.debug(
           "Uploading suite execution {} to suite execution {}",
           xmlSuite.getName(),
           ExecutionEntities.suiteExecutionId);

@@ -29,7 +29,7 @@ public class FileConfigSource implements ConfigSource {
         FileConfigSource.class.getClassLoader().getResourceAsStream(fileName)) {
       if (input != null) {
         properties.load(input);
-        LOGGER.info("Loaded configuration from {}.", fileName);
+        LOGGER.debug("Loaded configuration from {}.", fileName);
       } else {
         LOGGER.warn("Could not find {}. Ignoring this source.", fileName);
       }

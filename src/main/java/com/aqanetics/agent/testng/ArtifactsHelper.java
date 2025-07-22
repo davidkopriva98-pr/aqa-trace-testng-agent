@@ -73,7 +73,7 @@ public class ArtifactsHelper {
               + executionId
               + ARTIFACTS_ENDPOINT
               + (errorScreenshot ? "/error-screenshot" : "");
-      LOGGER.info(
+      LOGGER.debug(
           "Uploading {} {} to test execution {}",
           errorScreenshot ? "error screenshot" : "artifact",
           artifact.getName(),

@@ -93,7 +93,7 @@ public class TestExecutionListener
                       + "/start"),
               AqaConfigLoader.OBJECT_MAPPER.writeValueAsString(values));
       if (response != null) {
-        LOGGER.info("testExecution {} started.", testExecution.id());
+        LOGGER.debug("testExecution {} started.", testExecution.id());
         ExecutionEntities.inProgressTestExecutionId = testExecution.id();
       }
     } catch (AqaAgentException aqaException) {
@@ -125,7 +125,7 @@ public class TestExecutionListener
                       + "/end"),
               AqaConfigLoader.OBJECT_MAPPER.writeValueAsString(values));
       if (response != null) {
-        LOGGER.info("testExecution {} ended.", testExecutionId);
+        LOGGER.debug("testExecution {} ended.", testExecutionId);
         ExecutionEntities.inProgressTestExecutionId = null;
         return AqaConfigLoader.OBJECT_MAPPER.readValue(response, MinimalTestExecutionDto.class);
       } else {
@@ -215,7 +215,7 @@ public class TestExecutionListener
                       null,
                       sessionId));
           if (ExecutionEntities.testExecution != null) {
-            LOGGER.info(
+            LOGGER.debug(
                 "Test execution {} was missing for current configuration method",
                 ExecutionEntities.testExecution.id());
           }
@@ -243,7 +243,7 @@ public class TestExecutionListener
               this.registerNewTestExecution(newConfigurationExecution);
           ExecutionEntities.inProgressTestExecutionId =
               ExecutionEntities.configurationExecution.id();
-          LOGGER.info(
+          LOGGER.debug(
               "New configuration method started: {}",
               ExecutionEntities.configurationExecution.id());
         }
@@ -351,7 +351,7 @@ public class TestExecutionListener
         }
 
         this.startTestExecution(ExecutionEntities.testExecution, values);
-        LOGGER.info("Started test execution {}", ExecutionEntities.testExecution.id());
+        LOGGER.debug("Started test execution {}", ExecutionEntities.testExecution.id());
 
       } else {
 
@@ -363,7 +363,7 @@ public class TestExecutionListener
                 .testName()
                 .equals(method.getTestMethod().getMethodName())
             && retryCount > 0) {
-          LOGGER.info(
+          LOGGER.debug(
               "Previous test execution: [id {}, name {}]. New: {}",
               ExecutionEntities.prevTestExecution.id(),
               ExecutionEntities.prevTestExecution.testName(),
@@ -386,7 +386,7 @@ public class TestExecutionListener
                     null,
                     context.getAttribute("sessionId").toString()));
         ExecutionEntities.inProgressTestExecutionId = ExecutionEntities.testExecution.id();
-        LOGGER.info(
+        LOGGER.debug(
             "@Test {} had no configurations. Created new test execution",
             ExecutionEntities.testExecution.id());
       }

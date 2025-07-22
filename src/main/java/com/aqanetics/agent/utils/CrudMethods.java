@@ -72,7 +72,7 @@ public class CrudMethods {
         throw new AqaAgentException(e.getMessage(), !STOP_WHEN_UNREACHABLE);
       }
     } else {
-      LOGGER.info("API endpoint not configured or reporting disabled");
+      LOGGER.debug("API endpoint not configured or reporting disabled");
       return null;
     }
   }
@@ -174,7 +174,7 @@ public class CrudMethods {
             ClassicRequestBuilder.post(url).setEntity(multipartEntity).build();
         Integer responseCode =
             httpClient.execute(httpPost, org.apache.hc.core5.http.HttpResponse::getCode);
-        LOGGER.info("Response Code: {}", responseCode);
+        LOGGER.debug("Response Code: {}", responseCode);
         if (responseCode >= 300) {
           String errorMessage =
               String.format("API call to post log failed with status code %d", responseCode);
@@ -182,7 +182,7 @@ public class CrudMethods {
           throw new AqaAgentException(errorMessage, !STOP_WHEN_UNREACHABLE);
         }
       } catch (IOException e) {
-        LOGGER.info("Failed to upload artifact: {}", e.getMessage());
+        LOGGER.debug("Failed to upload artifact: {}", e.getMessage());
         throw new AqaAgentException(e.getMessage(), !STOP_WHEN_UNREACHABLE);
       }
     }
