@@ -48,6 +48,10 @@ public class SuiteExecutionListener implements ISuiteListener, IInvokedMethodLis
   private static final boolean ENABLED_ARTIFACTS =
       AqaConfigLoader.getBooleanProperty("aqa-trace.artifacts.enabled", false);
 
+  static {
+    AqaConfigLoader.loadProperties();
+  }
+
   public SuiteExecutionListener() {}
 
   @Override
