@@ -8,6 +8,7 @@ import com.aqanetics.agent.config.AqaConfigLoader;
 import com.aqanetics.agent.core.exception.AqaAgentException;
 import com.aqanetics.agent.testng.ExecutionEntities;
 import com.aqanetics.agent.utils.AQATraceIgnore;
+import com.aqanetics.agent.utils.AqaTraceServerGuards;
 import com.aqanetics.agent.utils.CrudMethods;
 import com.aqanetics.dto.create.NewTestExecutionDto;
 import com.aqanetics.dto.minimal.MinimalTestExecutionDto;
@@ -42,7 +43,8 @@ public class TestExecutionListener
   public TestExecutionListener() {}
 
   private MinimalTestExecutionDto registerNewTestExecution(NewTestExecutionDto newTestExecution) {
-    if (ExecutionEntities.suiteExecutionId == null && STOP_WHEN_UNREACHABLE) {
+    if ((!AqaTraceServerGuards.isSuiteExecIdSet() || AqaTraceServerGuards.isServerUnreachable())
+        && STOP_WHEN_UNREACHABLE) {
       return null;
     }
 
@@ -61,6 +63,7 @@ public class TestExecutionListener
         LOGGER.debug("Received testExecution");
         return AqaConfigLoader.OBJECT_MAPPER.readValue(response, MinimalTestExecutionDto.class);
       } else {
+        AqaTraceServerGuards.markServerUnreachable();
         return null;
       }
     } catch (AqaAgentException aqaException) {
@@ -77,7 +80,8 @@ public class TestExecutionListener
 
   private void startTestExecution(
       MinimalTestExecutionDto testExecution, Map<String, Object> values) {
-    if (ExecutionEntities.suiteExecutionId == null && STOP_WHEN_UNREACHABLE) {
+    if ((!AqaTraceServerGuards.isSuiteExecIdSet() || AqaTraceServerGuards.isServerUnreachable())
+        && STOP_WHEN_UNREACHABLE) {
       return;
     }
     try {
@@ -109,7 +113,8 @@ public class TestExecutionListener
 
   private MinimalTestExecutionDto endTestExecution(
       Long testExecutionId, Map<String, Object> values) {
-    if (ExecutionEntities.suiteExecutionId == null && STOP_WHEN_UNREACHABLE) {
+    if ((!AqaTraceServerGuards.isSuiteExecIdSet() || AqaTraceServerGuards.isServerUnreachable())
+        && STOP_WHEN_UNREACHABLE) {
       return null;
     }
     try {
@@ -145,22 +150,34 @@ public class TestExecutionListener
 
   @Override
   public void onTestSuccess(ITestResult result) {
-    this.testEnded(result);
+    if (AqaTraceServerGuards.isEnabledExtended()) {
+      LOGGER.debug("Test passed.");
+      this.testEnded(result);
+    }
   }
 
   @Override
   public void onTestFailedWithTimeout(ITestResult result) {
-    this.testEnded(result);
+    if (AqaTraceServerGuards.isEnabledExtended()) {
+      LOGGER.debug("Test failed with timeout.");
+      this.testEnded(result);
+    }
   }
 
   @Override
   public void onTestFailure(ITestResult result) {
-    this.testEnded(result);
+    if (AqaTraceServerGuards.isEnabledExtended()) {
+      LOGGER.debug("Test failed.");
+      this.testEnded(result);
+    }
   }
 
   @Override
   public void onTestSkipped(ITestResult result) {
-    this.testEnded(result);
+    if (AqaTraceServerGuards.isEnabledExtended()) {
+      LOGGER.debug("Test skipped.");
+      this.testEnded(result);
+    }
   }
 
   private String getStackTrace(Throwable throwable) {
@@ -183,7 +200,7 @@ public class TestExecutionListener
   @Override
   public void beforeConfiguration(ITestResult tr, ITestNGMethod tm) {
     IConfigurationListener.super.beforeConfiguration(tr, tm);
-    if (tm != null) {
+    if (tm != null && AqaTraceServerGuards.isEnabledExtended()) {
       AQATraceIgnore ignore =
           tr.getMethod().getConstructorOrMethod().getMethod().getAnnotation(AQATraceIgnore.class);
       if ((ignore == null || !ignore.value())) {
@@ -254,19 +271,28 @@ public class TestExecutionListener
   @Override
   public void onConfigurationSuccess(ITestResult tr, ITestNGMethod tm) {
     IConfigurationListener.super.onConfigurationSuccess(tr, tm);
-    this.methodConfigurationEnd(tr, tm);
+    if (AqaTraceServerGuards.isEnabledExtended()) {
+      LOGGER.debug("Config method passed.");
+      this.methodConfigurationEnd(tr, tm);
+    }
   }
 
   @Override
   public void onConfigurationFailure(ITestResult tr, ITestNGMethod tm) {
     IConfigurationListener.super.onConfigurationFailure(tr, tm);
-    this.methodConfigurationEnd(tr, tm);
+    if (AqaTraceServerGuards.isEnabledExtended()) {
+      LOGGER.debug("Config method failed.");
+      this.methodConfigurationEnd(tr, tm);
+    }
   }
 
   @Override
   public void onConfigurationSkip(ITestResult tr, ITestNGMethod tm) {
     IConfigurationListener.super.onConfigurationSkip(tr, tm);
-    this.methodConfigurationEnd(tr, tm);
+    if (AqaTraceServerGuards.isEnabledExtended()) {
+      LOGGER.debug("Config method skipped.");
+      this.methodConfigurationEnd(tr, tm);
+    }
   }
 
   private void methodConfigurationEnd(ITestResult tr, ITestNGMethod tm) {
@@ -288,21 +314,29 @@ public class TestExecutionListener
                 this.convertIStatusToString(tr.getStatus()),
                 "endTime",
                 Instant.now().toString()));
-    if (tr.getThrowable() != null && tr.getThrowable().getMessage() != null) {
+
+    // Remove tr.getStatus() == ITestResult.FAILURE from if condition, if we want to have error from
+    // before method listed for skipped test
+    if (tr.getStatus() == ITestResult.FAILURE
+        && tr.getThrowable() != null
+        && tr.getThrowable().getMessage() != null) {
       String stackTrace = getStackTrace(tr.getThrowable());
       values.put("exceptionStackTrace", stackTrace);
       values.put("exceptionMessage", tr.getThrowable().getMessage());
 
-      try {
-        CrudMethods.postLog(
-            AqaConfigLoader.OBJECT_MAPPER.writeValueAsString(
-                new TestExecutionLogDto(
-                    ExecutionEntities.inProgressTestExecutionId,
-                    stackTrace,
-                    "ERROR",
-                    Instant.ofEpochMilli(tr.getEndMillis()))));
-      } catch (Exception e) {
-        LOGGER.error("Error posting error log: {}", e.getMessage());
+      // Only post log if in progress execution id exists.
+      if (ExecutionEntities.inProgressTestExecutionId != null) {
+        try {
+          CrudMethods.postLog(
+              AqaConfigLoader.OBJECT_MAPPER.writeValueAsString(
+                  new TestExecutionLogDto(
+                      ExecutionEntities.inProgressTestExecutionId,
+                      stackTrace,
+                      "ERROR",
+                      Instant.ofEpochMilli(tr.getEndMillis()))));
+        } catch (Exception e) {
+          LOGGER.error("Error posting error log: {}", e.getMessage());
+        }
       }
     }
     return values;
@@ -322,73 +356,75 @@ public class TestExecutionListener
       IInvokedMethod method, ITestResult testResult, ITestContext context) {
     IInvokedMethodListener.super.beforeInvocation(method, testResult, context);
 
-    /*For non-test methods see TestExecutionListener.beforeConfiguration() */
-    AQATraceIgnore ignore =
-        method
-            .getTestMethod()
-            .getConstructorOrMethod()
-            .getMethod()
-            .getAnnotation(AQATraceIgnore.class);
-    if (method.isTestMethod() && (ignore == null || !ignore.value())) {
-      int retryCount = method.getTestMethod().getCurrentInvocationCount();
+    if (AqaTraceServerGuards.isEnabledExtended()) {
+      /*For non-test methods see TestExecutionListener.beforeConfiguration() */
+      AQATraceIgnore ignore =
+          method
+              .getTestMethod()
+              .getConstructorOrMethod()
+              .getMethod()
+              .getAnnotation(AQATraceIgnore.class);
+      if (method.isTestMethod() && (ignore == null || !ignore.value())) {
+        int retryCount = method.getTestMethod().getCurrentInvocationCount();
 
-      // Check if testExecution entity was already created (happens when @Test has @Before)
-      if (ExecutionEntities.testExecution != null
-          && ExecutionEntities.testExecution
-              .testName()
-              .equals(method.getTestMethod().getMethodName())
-          && ExecutionEntities.testExecution.startTime() == null) {
-        ExecutionEntities.inProgressTestExecutionId = ExecutionEntities.testExecution.id();
-
-        Map<String, Object> values =
-            new HashMap<>(
-                Map.ofEntries(
-                    Map.entry("status", ExecutionStatus.IN_PROGRESS),
-                    Map.entry("sessionId", context.getAttribute("sessionId")),
-                    Map.entry("startTime", Instant.now().toString())));
-        if (retryCount > 0) {
-          values.put("retryCount", retryCount);
-        }
-
-        this.startTestExecution(ExecutionEntities.testExecution, values);
-        LOGGER.debug("Started test execution {}", ExecutionEntities.testExecution.id());
-
-      } else {
-
-        Long retryOf = null;
-        ExecutionEntities.prevTestExecution = ExecutionEntities.testExecution;
-
-        if (ExecutionEntities.prevTestExecution != null
-            && ExecutionEntities.prevTestExecution
+        // Check if testExecution entity was already created (happens when @Test has @Before)
+        if (ExecutionEntities.testExecution != null
+            && ExecutionEntities.testExecution
                 .testName()
                 .equals(method.getTestMethod().getMethodName())
-            && retryCount > 0) {
-          LOGGER.debug(
-              "Previous test execution: [id {}, name {}]. New: {}",
-              ExecutionEntities.prevTestExecution.id(),
-              ExecutionEntities.prevTestExecution.testName(),
-              method.getTestMethod().getMethodName());
-          retryOf = ExecutionEntities.prevTestExecution.id();
-        }
+            && ExecutionEntities.testExecution.startTime() == null) {
+          ExecutionEntities.inProgressTestExecutionId = ExecutionEntities.testExecution.id();
 
-        ExecutionEntities.testExecution =
-            this.registerNewTestExecution(
-                new NewTestExecutionDto(
-                    method.getTestMethod().getMethodName(),
-                    method.getTestMethod().getTestClass().getRealClass().getSimpleName(),
-                    TestExecutionType.TEST,
-                    ExecutionStatus.IN_PROGRESS,
-                    method.getTestMethod().getTestClass().getName(),
-                    Instant.ofEpochMilli(method.getDate()),
-                    Instant.ofEpochMilli(method.getDate()),
-                    method.getTestMethod().getCurrentInvocationCount(),
-                    retryOf,
-                    null,
-                    context.getAttribute("sessionId").toString()));
-        ExecutionEntities.inProgressTestExecutionId = ExecutionEntities.testExecution.id();
-        LOGGER.debug(
-            "@Test {} had no configurations. Created new test execution",
-            ExecutionEntities.testExecution.id());
+          Map<String, Object> values =
+              new HashMap<>(
+                  Map.ofEntries(
+                      Map.entry("status", ExecutionStatus.IN_PROGRESS),
+                      Map.entry("sessionId", context.getAttribute("sessionId")),
+                      Map.entry("startTime", Instant.now().toString())));
+          if (retryCount > 0) {
+            values.put("retryCount", retryCount);
+          }
+
+          this.startTestExecution(ExecutionEntities.testExecution, values);
+          LOGGER.debug("Started test execution {}", ExecutionEntities.testExecution.id());
+
+        } else {
+
+          Long retryOf = null;
+          ExecutionEntities.prevTestExecution = ExecutionEntities.testExecution;
+
+          if (ExecutionEntities.prevTestExecution != null
+              && ExecutionEntities.prevTestExecution
+                  .testName()
+                  .equals(method.getTestMethod().getMethodName())
+              && retryCount > 0) {
+            LOGGER.debug(
+                "Previous test execution: [id {}, name {}]. New: {}",
+                ExecutionEntities.prevTestExecution.id(),
+                ExecutionEntities.prevTestExecution.testName(),
+                method.getTestMethod().getMethodName());
+            retryOf = ExecutionEntities.prevTestExecution.id();
+          }
+
+          ExecutionEntities.testExecution =
+              this.registerNewTestExecution(
+                  new NewTestExecutionDto(
+                      method.getTestMethod().getMethodName(),
+                      method.getTestMethod().getTestClass().getRealClass().getSimpleName(),
+                      TestExecutionType.TEST,
+                      ExecutionStatus.IN_PROGRESS,
+                      method.getTestMethod().getTestClass().getName(),
+                      Instant.ofEpochMilli(method.getDate()),
+                      Instant.ofEpochMilli(method.getDate()),
+                      method.getTestMethod().getCurrentInvocationCount(),
+                      retryOf,
+                      null,
+                      context.getAttribute("sessionId").toString()));
+          ExecutionEntities.inProgressTestExecutionId = ExecutionEntities.testExecution.id();
+          LOGGER.debug(
+              "@Test {} had no configurations. Created new test execution",
+              ExecutionEntities.testExecution.id());
+        }
       }
     }
   }
