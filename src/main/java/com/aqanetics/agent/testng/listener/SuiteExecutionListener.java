@@ -11,6 +11,7 @@ import com.aqanetics.agent.config.AqaConfigLoader;
 import com.aqanetics.agent.core.dto.NewSuiteExecutionDto;
 import com.aqanetics.agent.core.exception.AqaAgentException;
 import com.aqanetics.agent.testng.ExecutionEntities;
+import com.aqanetics.agent.utils.AqaTraceServerGuards;
 import com.aqanetics.agent.utils.CrudMethods;
 import com.aqanetics.dto.basic.BasicSuiteExecutionParameterDto;
 import com.aqanetics.dto.normal.OrganizationDto;
@@ -67,12 +68,11 @@ public class SuiteExecutionListener implements ISuiteListener, IInvokedMethodLis
   }
 
   /**
-   * Reads all parameters from xml suite and creates {@link NewSuiteExecutionDto} with all required
-   * data and sends it to AQA-trace server.
+   * Reads all parameters from xml suite.
    *
    * @param suite testNG suite entity
    */
-  private void registerNewSuiteExecution(ISuite suite, String hostName) {
+  private List<BasicSuiteExecutionParameterDto> acquireParametersFromXml(ISuite suite) {
     List<BasicSuiteExecutionParameterDto> parameters = new ArrayList<>();
     if (SAVE_PARAMETER_PREFIX != null) {
       Map<String, String> allParameters = suite.getXmlSuite().getAllParameters();
@@ -108,6 +108,18 @@ public class SuiteExecutionListener implements ISuiteListener, IInvokedMethodLis
             }
           });
     }
+    return parameters;
+  }
+
+  /**
+   * Creates {@link NewSuiteExecutionDto} with all required data and sends it to AQA Trace server.
+   * If server is unreachable, it will prevent all further calls to the server.
+   *
+   * @param suite testNG suite entity
+   * @param hostName id or name of host, where execution is executed (container id)
+   */
+  private void registerNewSuiteExecution(ISuite suite, String hostName) {
+    List<BasicSuiteExecutionParameterDto> parameters = acquireParametersFromXml(suite);
 
     OrganizationDto organizationDto =
         new OrganizationDto(null, getProperty("aqa-trace.organization-name", "unknown"));
@@ -128,6 +140,8 @@ public class SuiteExecutionListener implements ISuiteListener, IInvokedMethodLis
         ExecutionEntities.suiteExecutionId = rootNode.get("id").asLong();
         LOGGER.debug(
             "Registered new suite execution with id: {}", ExecutionEntities.suiteExecutionId);
+      } else {
+        AqaTraceServerGuards.markServerUnreachable();
       }
     } catch (AqaAgentException aqaException) {
       if (aqaException.shouldThrowException()) {
@@ -140,6 +154,11 @@ public class SuiteExecutionListener implements ISuiteListener, IInvokedMethodLis
     }
   }
 
+  /**
+   * Updates current suite execution with new properties.
+   *
+   * @param jsonPayload data to update suite execution with.
+   */
   private void updateSuiteExecution(Map<String, Object> jsonPayload) {
     try {
       String response = CrudMethods.sendSuitePatch(jsonPayload);
@@ -162,7 +181,7 @@ public class SuiteExecutionListener implements ISuiteListener, IInvokedMethodLis
   }
 
   public void onFinish(ISuite suite) {
-    if (ExecutionEntities.suiteExecutionId != null) {
+    if (AqaTraceServerGuards.isEnabledExtended() && AqaTraceServerGuards.isSuiteExecIdSet()) {
       uploadXmlSuiteFile(suite.getXmlSuite());
       LOGGER.debug("SuiteExecution with id: {} is finished.", ExecutionEntities.suiteExecutionId);
       Map<String, Object> jsonPayload = new HashMap<>();
@@ -183,6 +202,11 @@ public class SuiteExecutionListener implements ISuiteListener, IInvokedMethodLis
     }
   }
 
+  /**
+   * Creates a temp file with data from suite xml file and uploads it to AQA Trace.
+   *
+   * @param xmlSuite xmlSuite.
+   */
   private void uploadXmlSuiteFile(XmlSuite xmlSuite) {
     LOGGER.debug("Uploading XML suite file {} - {}", xmlSuite.getName(), ENABLED_ARTIFACTS);
     if (ENABLED_ARTIFACTS) {
