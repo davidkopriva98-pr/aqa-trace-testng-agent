@@ -57,7 +57,7 @@
         <groupId>org.apache.maven.plugins</groupId>
         <version>2.9.1</version>
       </plugin>
-      <plugin>
+      <!--<plugin>
         <artifactId>maven-gpg-plugin</artifactId>
         <configuration>
           <gpgExecutable>gpg</gpgExecutable>
@@ -85,7 +85,7 @@
         <extensions>true</extensions>
         <groupId>org.sonatype.central</groupId>
         <version>0.6.0</version>
-      </plugin>
+      </plugin>-->
       <plugin>
         <artifactId>maven-enforcer-plugin</artifactId>
         <configuration>
@@ -225,6 +225,6 @@
 
   <url>https://github.com/davidkopriva98-pr/aqa-trace-testng-agent</url>
 
-  <version>1.0.2</version>
+  <version>1.0.4-alpha.1</version>
 
 </project>
