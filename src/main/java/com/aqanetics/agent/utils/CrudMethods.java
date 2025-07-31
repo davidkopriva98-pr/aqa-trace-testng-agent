@@ -33,7 +33,7 @@ public class CrudMethods {
       AqaConfigLoader.getBooleanProperty("aqa-trace.stop-execution-when-unreachable", false);
 
   public static String sendPost(URI uri, String postBody) throws AqaAgentException {
-    if (AqaConfigLoader.ENABLED && AqaConfigLoader.API_ENDPOINT != null) {
+    if (AqaTraceServerGuards.isEnabled()) {
       try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
         HttpPost httpPost = new HttpPost(uri);
         httpPost.setHeader("Content-Type", ContentType.APPLICATION_JSON.getMimeType());
@@ -79,10 +79,7 @@ public class CrudMethods {
 
   public static String sendSuitePatch(Map<String, Object> updatedParameters)
       throws AqaAgentException {
-    if (AqaConfigLoader.ENABLED
-        && ExecutionEntities.suiteExecutionId != null
-        && AqaConfigLoader.API_ENDPOINT != null) {
-
+    if (AqaTraceServerGuards.isEnabled() && AqaTraceServerGuards.isSuiteExecIdSet()) {
       try (CloseableHttpClient client = HttpClients.createDefault()) {
         HttpPatch httpPatch =
             new HttpPatch(
@@ -162,7 +159,8 @@ public class CrudMethods {
   public static void postExecutionArtifact(
       String url, File artifact, String fileName, boolean ofTestExecution)
       throws AqaAgentException {
-    if (AqaConfigLoader.API_ENDPOINT != null
+    if (AqaTraceServerGuards.isEnabled()
+        && !AqaTraceServerGuards.isServerUnreachable()
         && ((ofTestExecution && ExecutionEntities.testExecution != null)
             || (!ofTestExecution && ExecutionEntities.suiteExecutionId != null))) {
       try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
