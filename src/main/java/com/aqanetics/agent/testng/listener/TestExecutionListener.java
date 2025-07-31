@@ -293,16 +293,19 @@ public class TestExecutionListener
       values.put("exceptionStackTrace", stackTrace);
       values.put("exceptionMessage", tr.getThrowable().getMessage());
 
-      try {
-        CrudMethods.postLog(
-            AqaConfigLoader.OBJECT_MAPPER.writeValueAsString(
-                new TestExecutionLogDto(
-                    ExecutionEntities.inProgressTestExecutionId,
-                    stackTrace,
-                    "ERROR",
-                    Instant.ofEpochMilli(tr.getEndMillis()))));
-      } catch (Exception e) {
-        LOGGER.error("Error posting error log: {}", e.getMessage());
+      // Only post log if previous HTTP request to AQA Trace passed.
+      if (ExecutionEntities.inProgressTestExecutionId != null) {
+        try {
+          CrudMethods.postLog(
+              AqaConfigLoader.OBJECT_MAPPER.writeValueAsString(
+                  new TestExecutionLogDto(
+                      ExecutionEntities.inProgressTestExecutionId,
+                      stackTrace,
+                      "ERROR",
+                      Instant.ofEpochMilli(tr.getEndMillis()))));
+        } catch (Exception e) {
+          LOGGER.error("Error posting error log: {}", e.getMessage());
+        }
       }
     }
     return values;
