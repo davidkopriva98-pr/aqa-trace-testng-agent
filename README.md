@@ -28,7 +28,9 @@ implementation group: 'com.aqanetics', name: 'aqa-trace-testng-agent', version: 
 To use this agent, you will need to set up some properties. Properties can either be set using
 `aqa-trace-agent.properties` file from `resources` directory, via system properties or using environment variables.
 
-__❗❗Properties set as a system properties will override environment variables and environment variables will override those set upin `aqa-trace-agent.properties`.❗❗__
+
+__❗❗Properties set as a system properties will override environment variables and environment variables will override those set up in `aqa-trace-agent.properties`.❗❗__
+
 
 ### Using `aqa-trace-agent.properties`
 
