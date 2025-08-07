@@ -139,7 +139,7 @@ public class CrudMethods {
             AqaConfigLoader.API_ENDPOINT
                 + AqaConfigLoader.AGENT_API_ENDPOINT
                 + AqaConfigLoader.TEST_API_ENDPOINT
-                + ExecutionEntities.inProgressTestExecutionId.toString()
+                + ExecutionEntities.inProgressMethodExecutionId.toString()
                 + AqaConfigLoader.LOG_API_ENDPOINT);
 
     try (CloseableHttpClient client = HttpClients.createDefault()) {

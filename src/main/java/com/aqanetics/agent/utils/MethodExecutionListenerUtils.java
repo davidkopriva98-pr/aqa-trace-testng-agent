@@ -7,9 +7,9 @@ import static com.aqanetics.agent.config.AqaConfigLoader.TEST_API_ENDPOINT;
 import com.aqanetics.agent.config.AqaConfigLoader;
 import com.aqanetics.agent.core.exception.AqaAgentException;
 import com.aqanetics.agent.testng.ExecutionEntities;
-import com.aqanetics.dto.create.NewTestExecutionDto;
-import com.aqanetics.dto.minimal.MinimalTestExecutionDto;
-import com.aqanetics.dto.normal.TestExecutionLogDto;
+import com.aqanetics.dto.create.NewMethodExecutionDto;
+import com.aqanetics.dto.minimal.MinimalMethodExecutionDto;
+import com.aqanetics.dto.normal.MethodExecutionLogDto;
 import com.aqanetics.enums.ExecutionStatus;
 import com.aqanetics.enums.MethodExecutionType;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -33,8 +33,8 @@ public class MethodExecutionListenerUtils {
   private static final boolean STOP_WHEN_UNREACHABLE =
       AqaConfigLoader.getBooleanProperty("aqa-trace.stop-execution-when-unreachable", false);
 
-  public static MinimalTestExecutionDto registerNewTestExecution(
-      NewTestExecutionDto newTestExecution) {
+  public static MinimalMethodExecutionDto registerNewTestExecution(
+      NewMethodExecutionDto newTestExecution) {
     if ((!AqaTraceServerGuards.isSuiteExecIdSet() || AqaTraceServerGuards.isServerUnreachable())
         && STOP_WHEN_UNREACHABLE) {
       return null;
@@ -53,7 +53,7 @@ public class MethodExecutionListenerUtils {
               AqaConfigLoader.OBJECT_MAPPER.writeValueAsString(newTestExecution));
       if (response != null) {
         LOGGER.debug("Received testExecution");
-        return AqaConfigLoader.OBJECT_MAPPER.readValue(response, MinimalTestExecutionDto.class);
+        return AqaConfigLoader.OBJECT_MAPPER.readValue(response, MinimalMethodExecutionDto.class);
       } else {
         AqaTraceServerGuards.markServerUnreachable();
         return null;
@@ -141,12 +141,12 @@ public class MethodExecutionListenerUtils {
       values.put("exceptionMessage", tr.getThrowable().getMessage());
 
       // Only post log if in progress execution id exists.
-      if (ExecutionEntities.inProgressTestExecutionId != null) {
+      if (ExecutionEntities.inProgressMethodExecutionId != null) {
         try {
           CrudMethods.postLog(
               AqaConfigLoader.OBJECT_MAPPER.writeValueAsString(
-                  new TestExecutionLogDto(
-                      ExecutionEntities.inProgressTestExecutionId,
+                  new MethodExecutionLogDto(
+                      ExecutionEntities.inProgressMethodExecutionId,
                       stackTrace,
                       "ERROR",
                       Instant.ofEpochMilli(tr.getEndMillis()))));
@@ -158,7 +158,7 @@ public class MethodExecutionListenerUtils {
     return values;
   }
 
-  public static MinimalTestExecutionDto endTestExecution(
+  public static MinimalMethodExecutionDto endTestExecution(
       Long testExecutionId, Map<String, Object> values) {
     if ((!AqaTraceServerGuards.isSuiteExecIdSet() || AqaTraceServerGuards.isServerUnreachable())
         && STOP_WHEN_UNREACHABLE) {
@@ -178,8 +178,8 @@ public class MethodExecutionListenerUtils {
               AqaConfigLoader.OBJECT_MAPPER.writeValueAsString(values));
       if (response != null) {
         LOGGER.debug("testExecution {} ended.", testExecutionId);
-        ExecutionEntities.inProgressTestExecutionId = null;
-        return AqaConfigLoader.OBJECT_MAPPER.readValue(response, MinimalTestExecutionDto.class);
+        ExecutionEntities.inProgressMethodExecutionId = null;
+        return AqaConfigLoader.OBJECT_MAPPER.readValue(response, MinimalMethodExecutionDto.class);
       } else {
         return null;
       }
@@ -201,7 +201,7 @@ public class MethodExecutionListenerUtils {
     // Configuration method has a fk link to @Test, therefore we need to check if test is created in
     // DB.
     if (ExecutionEntities.testExecution == null
-        || !Objects.equals(ExecutionEntities.testExecution.testName(), tm.getMethodName())
+        || !Objects.equals(ExecutionEntities.testExecution.name(), tm.getMethodName())
         || (tr.getMethod().isBeforeMethodConfiguration()
             && ExecutionEntities.testExecution.endTime() != null)) {
       // Checking if @Test is already created in DB. If not, we create it and set it as SKIPPED
@@ -210,7 +210,7 @@ public class MethodExecutionListenerUtils {
 
       ExecutionEntities.testExecution =
           MethodExecutionListenerUtils.registerNewTestExecution(
-              new NewTestExecutionDto(
+              new NewMethodExecutionDto(
                   tm.getMethodName(),
                   tm.getTestClass().getRealClass().getSimpleName(),
                   MethodExecutionType.TEST,
@@ -246,8 +246,8 @@ public class MethodExecutionListenerUtils {
 
   private static void registerNewMethodExecution(
       ITestResult tr, MethodExecutionType type, Long testExecutionId, String sessionId) {
-    NewTestExecutionDto newConfigurationExecution =
-        new NewTestExecutionDto(
+    NewMethodExecutionDto newConfigurationExecution =
+        new NewMethodExecutionDto(
             tr.getMethod().getMethodName(),
             tr.getTestClass().getRealClass().getSimpleName(),
             type,
@@ -262,7 +262,7 @@ public class MethodExecutionListenerUtils {
 
     ExecutionEntities.configurationExecution =
         MethodExecutionListenerUtils.registerNewTestExecution(newConfigurationExecution);
-    ExecutionEntities.inProgressTestExecutionId = ExecutionEntities.configurationExecution.id();
+    ExecutionEntities.inProgressMethodExecutionId = ExecutionEntities.configurationExecution.id();
     LOGGER.debug(
         "Configuration method ({}) started", ExecutionEntities.configurationExecution.id());
   }

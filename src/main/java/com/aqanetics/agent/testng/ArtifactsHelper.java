@@ -29,7 +29,7 @@ public class ArtifactsHelper {
     uploadFile(
         artifact,
         ExecutionEntities.configurationExecution.id(),
-        ExecutionEntities.configurationExecution.testName(),
+        ExecutionEntities.configurationExecution.name(),
         false);
   }
 
@@ -37,7 +37,7 @@ public class ArtifactsHelper {
     uploadFile(
         artifact,
         ExecutionEntities.testExecution.id(),
-        ExecutionEntities.testExecution.testName(),
+        ExecutionEntities.testExecution.name(),
         false);
   }
 
@@ -46,7 +46,7 @@ public class ArtifactsHelper {
       uploadFile(
           artifact,
           ExecutionEntities.testExecution.id(),
-          ExecutionEntities.testExecution.testName(),
+          ExecutionEntities.testExecution.name(),
           true);
     }
   }
@@ -56,7 +56,7 @@ public class ArtifactsHelper {
       uploadFile(
           artifact,
           ExecutionEntities.configurationExecution.id(),
-          ExecutionEntities.configurationExecution.testName(),
+          ExecutionEntities.configurationExecution.name(),
           true);
     }
   }

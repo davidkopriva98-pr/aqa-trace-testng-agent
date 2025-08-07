@@ -10,8 +10,8 @@ import com.aqanetics.agent.testng.ExecutionEntities;
 import com.aqanetics.agent.utils.AqaTraceServerGuards;
 import com.aqanetics.agent.utils.CrudMethods;
 import com.aqanetics.agent.utils.MethodExecutionListenerUtils;
-import com.aqanetics.dto.create.NewTestExecutionDto;
-import com.aqanetics.dto.minimal.MinimalTestExecutionDto;
+import com.aqanetics.dto.create.NewMethodExecutionDto;
+import com.aqanetics.dto.minimal.MinimalMethodExecutionDto;
 import com.aqanetics.enums.ExecutionStatus;
 import com.aqanetics.enums.MethodExecutionType;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -36,7 +36,7 @@ public class MethodExecutionListener implements ITestListener, IConfigurationLis
   public MethodExecutionListener() {}
 
   private void startTestExecution(
-      MinimalTestExecutionDto testExecution, Map<String, Object> values) {
+      MinimalMethodExecutionDto testExecution, Map<String, Object> values) {
     if ((!AqaTraceServerGuards.isSuiteExecIdSet() || AqaTraceServerGuards.isServerUnreachable())
         && STOP_WHEN_UNREACHABLE) {
       return;
@@ -55,7 +55,7 @@ public class MethodExecutionListener implements ITestListener, IConfigurationLis
               AqaConfigLoader.OBJECT_MAPPER.writeValueAsString(values));
       if (response != null) {
         LOGGER.debug("testExecution {} started.", testExecution.id());
-        ExecutionEntities.inProgressTestExecutionId = testExecution.id();
+        ExecutionEntities.inProgressMethodExecutionId = testExecution.id();
       }
     } catch (AqaAgentException aqaException) {
       if (aqaException.shouldThrowException()) {
@@ -170,9 +170,9 @@ public class MethodExecutionListener implements ITestListener, IConfigurationLis
 
       // Check if testExecution entity was already created (happens when @Test has @Before)
       if (ExecutionEntities.testExecution != null
-          && ExecutionEntities.testExecution.testName().equals(result.getMethod().getMethodName())
+          && ExecutionEntities.testExecution.name().equals(result.getMethod().getMethodName())
           && ExecutionEntities.testExecution.startTime() == null) {
-        ExecutionEntities.inProgressTestExecutionId = ExecutionEntities.testExecution.id();
+        ExecutionEntities.inProgressMethodExecutionId = ExecutionEntities.testExecution.id();
 
         Map<String, Object> values =
             new HashMap<>(
@@ -197,21 +197,19 @@ public class MethodExecutionListener implements ITestListener, IConfigurationLis
         ExecutionEntities.prevTestExecution = ExecutionEntities.testExecution;
 
         if (ExecutionEntities.prevTestExecution != null
-            && ExecutionEntities.prevTestExecution
-                .testName()
-                .equals(result.getMethod().getMethodName())
+            && ExecutionEntities.prevTestExecution.name().equals(result.getMethod().getMethodName())
             && retryCount > 0) {
           LOGGER.debug(
               "Previous test execution: [id {}, name {}]. New: {}",
               ExecutionEntities.prevTestExecution.id(),
-              ExecutionEntities.prevTestExecution.testName(),
+              ExecutionEntities.prevTestExecution.name(),
               result.getMethod().getMethodName());
           retryOf = ExecutionEntities.prevTestExecution.id();
         }
 
         ExecutionEntities.testExecution =
             MethodExecutionListenerUtils.registerNewTestExecution(
-                new NewTestExecutionDto(
+                new NewMethodExecutionDto(
                     result.getMethod().getMethodName(),
                     result.getMethod().getTestClass().getRealClass().getSimpleName(),
                     MethodExecutionType.TEST,
@@ -224,7 +222,7 @@ public class MethodExecutionListener implements ITestListener, IConfigurationLis
                     null,
                     Objects.requireNonNullElse(
                         MethodExecutionListenerUtils.getSessionId(result.getTestContext()), "")));
-        ExecutionEntities.inProgressTestExecutionId = ExecutionEntities.testExecution.id();
+        ExecutionEntities.inProgressMethodExecutionId = ExecutionEntities.testExecution.id();
         LOGGER.debug(
             "@Test {} had no configurations. Created new test execution",
             ExecutionEntities.testExecution.id());
