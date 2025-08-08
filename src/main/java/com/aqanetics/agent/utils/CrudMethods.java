@@ -1,6 +1,9 @@
 package com.aqanetics.agent.utils;
 
 import static com.aqanetics.agent.config.AqaConfigLoader.AGENT_API_ENDPOINT;
+import static com.aqanetics.agent.config.AqaConfigLoader.API_ENDPOINT;
+import static com.aqanetics.agent.config.AqaConfigLoader.LOG_API_ENDPOINT;
+import static com.aqanetics.agent.config.AqaConfigLoader.METHOD_API_ENDPOINT;
 import static com.aqanetics.agent.config.AqaConfigLoader.SUITE_API_ENDPOINT;
 
 import com.aqanetics.agent.config.AqaConfigLoader;
@@ -84,7 +87,7 @@ public class CrudMethods {
         HttpPatch httpPatch =
             new HttpPatch(
                 URI.create(
-                    AqaConfigLoader.API_ENDPOINT
+                    API_ENDPOINT
                         + AGENT_API_ENDPOINT
                         + SUITE_API_ENDPOINT
                         + ExecutionEntities.suiteExecutionId));
@@ -136,11 +139,13 @@ public class CrudMethods {
   public static void postLog(String postBody) throws AqaAgentException {
     URI uri =
         URI.create(
-            AqaConfigLoader.API_ENDPOINT
-                + AqaConfigLoader.AGENT_API_ENDPOINT
-                + AqaConfigLoader.TEST_API_ENDPOINT
+            API_ENDPOINT
+                + AGENT_API_ENDPOINT
+                + SUITE_API_ENDPOINT
+                + ExecutionEntities.suiteExecutionId
+                + METHOD_API_ENDPOINT
                 + ExecutionEntities.inProgressMethodExecutionId.toString()
-                + AqaConfigLoader.LOG_API_ENDPOINT);
+                + LOG_API_ENDPOINT);
 
     try (CloseableHttpClient client = HttpClients.createDefault()) {
       HttpPost httpPost = new HttpPost(uri);
@@ -157,12 +162,12 @@ public class CrudMethods {
   }
 
   public static void postExecutionArtifact(
-      String url, File artifact, String fileName, boolean ofTestExecution)
+      String url, File artifact, String fileName, boolean ofMethodExecution)
       throws AqaAgentException {
     if (AqaTraceServerGuards.isEnabled()
         && !AqaTraceServerGuards.isServerUnreachable()
-        && ((ofTestExecution && ExecutionEntities.testExecution != null)
-            || (!ofTestExecution && ExecutionEntities.suiteExecutionId != null))) {
+        && ((ofMethodExecution && ExecutionEntities.testExecution != null)
+            || (!ofMethodExecution && ExecutionEntities.suiteExecutionId != null))) {
       try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
         HttpEntity multipartEntity =
             MultipartEntityBuilder.create()

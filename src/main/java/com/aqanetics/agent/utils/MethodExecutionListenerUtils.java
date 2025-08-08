@@ -1,8 +1,8 @@
 package com.aqanetics.agent.utils;
 
 import static com.aqanetics.agent.config.AqaConfigLoader.AGENT_API_ENDPOINT;
+import static com.aqanetics.agent.config.AqaConfigLoader.METHOD_API_ENDPOINT;
 import static com.aqanetics.agent.config.AqaConfigLoader.SUITE_API_ENDPOINT;
-import static com.aqanetics.agent.config.AqaConfigLoader.TEST_API_ENDPOINT;
 
 import com.aqanetics.agent.config.AqaConfigLoader;
 import com.aqanetics.agent.core.exception.AqaAgentException;
@@ -48,11 +48,11 @@ public class MethodExecutionListenerUtils {
                       + AGENT_API_ENDPOINT
                       + SUITE_API_ENDPOINT
                       + ExecutionEntities.suiteExecutionId
-                      + TEST_API_ENDPOINT
+                      + METHOD_API_ENDPOINT
                       + "new"),
               AqaConfigLoader.OBJECT_MAPPER.writeValueAsString(newTestExecution));
       if (response != null) {
-        LOGGER.debug("Received testExecution");
+        LOGGER.debug("Received methodExecution");
         return AqaConfigLoader.OBJECT_MAPPER.readValue(response, MinimalMethodExecutionDto.class);
       } else {
         AqaTraceServerGuards.markServerUnreachable();
@@ -60,7 +60,7 @@ public class MethodExecutionListenerUtils {
       }
     } catch (AqaAgentException aqaException) {
       if (aqaException.shouldThrowException()) {
-        LOGGER.error("Error creating new testExecution: {}", aqaException.getMessage());
+        LOGGER.error("Error creating new methodExecution: {}", aqaException.getMessage());
         throw new RuntimeException(aqaException);
       }
       return null;
@@ -72,8 +72,8 @@ public class MethodExecutionListenerUtils {
 
   public static void configurationExecutionEnded(ITestResult tr) {
     if (notMarkedAsIgnored(tr) && ExecutionEntities.configurationExecution != null) {
-      Map<String, Object> values = MethodExecutionListenerUtils.prepareTestEndParameters(tr);
-      MethodExecutionListenerUtils.endTestExecution(
+      Map<String, Object> values = MethodExecutionListenerUtils.prepareMethodEndParameters(tr);
+      MethodExecutionListenerUtils.endMethodExecution(
           ExecutionEntities.configurationExecution.id(), values);
       ExecutionEntities.configurationExecution = null;
     }
@@ -105,10 +105,10 @@ public class MethodExecutionListenerUtils {
     AQATraceIgnore ignore =
         result.getMethod().getConstructorOrMethod().getMethod().getAnnotation(AQATraceIgnore.class);
     if (ignore == null || !ignore.value()) {
-      Map<String, Object> values = MethodExecutionListenerUtils.prepareTestEndParameters(result);
-      Long testId = ExecutionEntities.testExecution.id();
+      Map<String, Object> values = MethodExecutionListenerUtils.prepareMethodEndParameters(result);
+      Long methodId = ExecutionEntities.testExecution.id();
       ExecutionEntities.testExecution =
-          MethodExecutionListenerUtils.endTestExecution(testId, values);
+          MethodExecutionListenerUtils.endMethodExecution(methodId, values);
     }
   }
 
@@ -119,7 +119,7 @@ public class MethodExecutionListenerUtils {
     return sw.toString();
   }
 
-  public static Map<String, Object> prepareTestEndParameters(ITestResult tr) {
+  public static Map<String, Object> prepareMethodEndParameters(ITestResult tr) {
     Map<String, Object> values =
         new HashMap<>(
             Map.of(
@@ -158,8 +158,8 @@ public class MethodExecutionListenerUtils {
     return values;
   }
 
-  public static MinimalMethodExecutionDto endTestExecution(
-      Long testExecutionId, Map<String, Object> values) {
+  public static MinimalMethodExecutionDto endMethodExecution(
+      Long methodExecutionId, Map<String, Object> values) {
     if ((!AqaTraceServerGuards.isSuiteExecIdSet() || AqaTraceServerGuards.isServerUnreachable())
         && STOP_WHEN_UNREACHABLE) {
       return null;
@@ -172,12 +172,12 @@ public class MethodExecutionListenerUtils {
                       + AGENT_API_ENDPOINT
                       + SUITE_API_ENDPOINT
                       + ExecutionEntities.suiteExecutionId
-                      + TEST_API_ENDPOINT
-                      + testExecutionId
+                      + METHOD_API_ENDPOINT
+                      + methodExecutionId
                       + "/end"),
               AqaConfigLoader.OBJECT_MAPPER.writeValueAsString(values));
       if (response != null) {
-        LOGGER.debug("testExecution {} ended.", testExecutionId);
+        LOGGER.debug("methodExecution {} ended.", methodExecutionId);
         ExecutionEntities.inProgressMethodExecutionId = null;
         return AqaConfigLoader.OBJECT_MAPPER.readValue(response, MinimalMethodExecutionDto.class);
       } else {
@@ -185,7 +185,7 @@ public class MethodExecutionListenerUtils {
       }
     } catch (AqaAgentException aqaException) {
       if (aqaException.shouldThrowException()) {
-        LOGGER.error("Error stopping testExecution: {}", aqaException.getMessage());
+        LOGGER.error("Error stopping methodExecution: {}", aqaException.getMessage());
         throw new RuntimeException(aqaException);
       }
       return null;

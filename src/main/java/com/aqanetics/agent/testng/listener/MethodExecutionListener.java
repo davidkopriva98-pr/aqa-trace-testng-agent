@@ -1,8 +1,8 @@
 package com.aqanetics.agent.testng.listener;
 
 import static com.aqanetics.agent.config.AqaConfigLoader.AGENT_API_ENDPOINT;
+import static com.aqanetics.agent.config.AqaConfigLoader.METHOD_API_ENDPOINT;
 import static com.aqanetics.agent.config.AqaConfigLoader.SUITE_API_ENDPOINT;
-import static com.aqanetics.agent.config.AqaConfigLoader.TEST_API_ENDPOINT;
 
 import com.aqanetics.agent.config.AqaConfigLoader;
 import com.aqanetics.agent.core.exception.AqaAgentException;
@@ -36,7 +36,7 @@ public class MethodExecutionListener implements ITestListener, IConfigurationLis
   public MethodExecutionListener() {}
 
   private void startTestExecution(
-      MinimalMethodExecutionDto testExecution, Map<String, Object> values) {
+      MinimalMethodExecutionDto methodExecution, Map<String, Object> values) {
     if ((!AqaTraceServerGuards.isSuiteExecIdSet() || AqaTraceServerGuards.isServerUnreachable())
         && STOP_WHEN_UNREACHABLE) {
       return;
@@ -49,17 +49,17 @@ public class MethodExecutionListener implements ITestListener, IConfigurationLis
                       + AGENT_API_ENDPOINT
                       + SUITE_API_ENDPOINT
                       + ExecutionEntities.suiteExecutionId
-                      + TEST_API_ENDPOINT
-                      + testExecution.id()
+                      + METHOD_API_ENDPOINT
+                      + methodExecution.id()
                       + "/start"),
               AqaConfigLoader.OBJECT_MAPPER.writeValueAsString(values));
       if (response != null) {
-        LOGGER.debug("testExecution {} started.", testExecution.id());
-        ExecutionEntities.inProgressMethodExecutionId = testExecution.id();
+        LOGGER.debug("methodExecution {} started.", methodExecution.id());
+        ExecutionEntities.inProgressMethodExecutionId = methodExecution.id();
       }
     } catch (AqaAgentException aqaException) {
       if (aqaException.shouldThrowException()) {
-        LOGGER.error("Error updating testExecution: {}", aqaException.getMessage());
+        LOGGER.error("Error updating methodExecution: {}", aqaException.getMessage());
         throw new RuntimeException(aqaException);
       }
     } catch (JsonProcessingException e) {
