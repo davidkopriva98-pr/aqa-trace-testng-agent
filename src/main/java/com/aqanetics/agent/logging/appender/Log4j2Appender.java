@@ -4,7 +4,7 @@ import com.aqanetics.agent.config.AqaConfigLoader;
 import com.aqanetics.agent.core.exception.AqaAgentException;
 import com.aqanetics.agent.testng.ExecutionEntities;
 import com.aqanetics.agent.utils.CrudMethods;
-import com.aqanetics.dto.normal.TestExecutionLogDto;
+import com.aqanetics.dto.normal.MethodExecutionLogDto;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import java.time.Instant;
 import java.util.Arrays;
@@ -30,10 +30,10 @@ public class Log4j2Appender extends AbstractAppender {
       AqaConfigLoader.getProperty("aqa-trace.logging.exclude-packages", "com.aqanetics.agent")
           .split(",");
 
-  private static final Function<LogEvent, TestExecutionLogDto> CONVERTER =
+  private static final Function<LogEvent, MethodExecutionLogDto> CONVERTER =
       (e) ->
-          new TestExecutionLogDto(
-              ExecutionEntities.inProgressTestExecutionId,
+          new MethodExecutionLogDto(
+              ExecutionEntities.inProgressMethodExecutionId,
               e.getMessage().getFormattedMessage(),
               e.getLevel().toString(),
               Instant.ofEpochMilli(e.getInstant().getEpochMillisecond()));
@@ -62,7 +62,7 @@ public class Log4j2Appender extends AbstractAppender {
   public void append(LogEvent event) {
     if (ENABLED_LOGGING
         && AqaConfigLoader.API_ENDPOINT != null
-        && ExecutionEntities.inProgressTestExecutionId != null
+        && ExecutionEntities.inProgressMethodExecutionId != null
         && checkLoggerName(event.getLoggerName())) {
       try {
         CrudMethods.postLog(

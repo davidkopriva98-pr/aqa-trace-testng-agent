@@ -1,2 +1,2 @@
 com.aqanetics.agent.testng.listener.SuiteExecutionListener
-com.aqanetics.agent.testng.listener.TestExecutionListener
+com.aqanetics.agent.testng.listener.MethodExecutionListener
