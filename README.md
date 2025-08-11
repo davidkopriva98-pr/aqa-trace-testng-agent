@@ -67,7 +67,7 @@ Example:
 * Environment Variable: `AQA_TRACE_SERVER_HOSTNAME`
 
 | Property                                                     | Environment Variable                                         | Type      | Default             | Mandatory | Description                                                                     |
-| ------------------------------------------------------------ | ------------------------------------------------------------ | --------- | ------------------- | --------- | ------------------------------------------------------------------------------- |
+|--------------------------------------------------------------|--------------------------------------------------------------|-----------|---------------------|-----------|---------------------------------------------------------------------------------|
 | `aqa-trace.enabled`                                          | `AQA_TRACE_ENABLED`                                          | boolean   | false               | ❌         | Enable/disable the agent.                                                       |
 | `aqa-trace.stop-execution-when-unreachable`                  | `AQA_TRACE_STOP_EXECUTION_WHEN_UNREACHABLE`                  | boolean   | false               | ❌         | Stop tests if AQA Trace server is unreachable.                                  |
 | `aqa-trace.organization-name`                                | `AQA_TRACE_ORGANIZATION_NAME`                                | string    | —                   | ✅         | Organization name for execution context.                                        |

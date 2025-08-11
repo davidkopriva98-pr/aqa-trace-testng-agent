@@ -175,7 +175,7 @@
     <dependency>
       <artifactId>aqa-trace-dto</artifactId>
       <groupId>com.aqanetics</groupId>
-      <version>1.0.0</version>
+      <version>1.0.1</version>
     </dependency>
   </dependencies>
   <description>TestNG agent for AQA Trace</description>
@@ -225,6 +225,6 @@
 
   <url>https://github.com/davidkopriva98-pr/aqa-trace-testng-agent</url>
 
-  <version>1.0.3</version>
+  <version>1.0.4</version>
 
 </project>
